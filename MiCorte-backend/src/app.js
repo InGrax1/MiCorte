@@ -22,7 +22,14 @@ app.use((req, res, next) => {
 });
 
 // ── Rutas ─────────────────────────────────────────────────────
-app.use('/api/auth', require('./routes/auth.routes'));
+app.use('/api/auth',       require('./routes/auth.routes'));
+app.use('/api/sucursales', require('./routes/sucursal.routes'));
+app.use('/api/estilistas', require('./routes/estilista.routes'));
+app.use('/api/servicios',  require('./routes/servicio.routes'));
+app.use('/api/clientes',   require('./routes/cliente.routes'));
+app.use('/api/citas',      require('./routes/cita.routes'));
+app.use('/api/pagos',      require('./routes/pago.routes'));
+app.use('/api/resenas',    require('./routes/resena.routes'));
 
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

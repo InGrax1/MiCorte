@@ -37,3 +37,6 @@ Thumbs.db
 
 
 .env.development
+
+.claude/
+CLAUDE.md

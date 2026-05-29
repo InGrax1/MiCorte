@@ -17,6 +17,9 @@ async function start() {
       console.log(`   Entorno: ${process.env.NODE_ENV || 'development'}`);
     });
 
+    // Iniciar cron jobs después de confirmar conexión a BD
+    require('./jobs/recordatorio.job');
+
   } catch (err) {
     console.error('❌ No se pudo conectar a la BD:', err.message);
     process.exit(1);   // si no hay BD, no levantamos el servidor
