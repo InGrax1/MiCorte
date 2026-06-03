@@ -215,3 +215,45 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Ajuste manual de puntos acepta valores positivos (acumulación) y negativos (canje), con validación de saldo suficiente.
 - La tasa de acumulación es configurable via variable de entorno PUNTOS_POR_PESO (default: 0.1 — 1 punto por cada $10 MXN).
 - Todos los movimientos de puntos quedan auditados con tipo, origen y descripción.
+
+---
+
+## [Fase 4 — Parte 1] — Reportes Exportables — 2026-06-03
+
+### Nuevas dependencias
+| Paquete | Versión | Uso |
+|---|---|---|
+| exceljs | instalado | Generación de archivos .xlsx |
+| pdfkit | instalado | Generación de archivos .pdf |
+
+### Nuevos módulos
+
+| Módulo | Archivos creados |
+|---|---|
+| Reportes | repository, service, controller, routes |
+| Generador Excel | utils/excel.js |
+| Generador PDF | utils/pdf.js |
+
+### Endpoints agregados
+
+| Método | Ruta | Auth | Roles | Formatos |
+|---|---|---|---|---|
+| GET | /api/reportes/ingresos | JWT | super_admin, admin_sucursal | json, xlsx, pdf |
+| GET | /api/reportes/citas | JWT | super_admin, admin_sucursal | json, xlsx, pdf |
+| GET | /api/reportes/inventario | JWT | super_admin, admin_sucursal | json, xlsx, pdf |
+| GET | /api/reportes/no-shows | JWT | super_admin, admin_sucursal | json, xlsx, pdf |
+| GET | /api/reportes/estilistas | JWT | super_admin, admin_sucursal | json, xlsx, pdf |
+
+### Filtros disponibles
+- `?formato=json|xlsx|pdf` — formato de salida (default: json)
+- `?fecha_inicio=YYYY-MM-DD&fecha_fin=YYYY-MM-DD` — rango de fechas
+- `?sucursal_id=` — filtrar por sucursal
+- `?estilista_id=` — filtrar por estilista (solo reporte citas)
+
+### Comportamiento clave
+- Formato json devuelve respuesta normal con `{ data, resumen }`.
+- Formatos xlsx y pdf devuelven el archivo con Content-Disposition attachment para descarga directa.
+- Excel de ingresos incluye dos hojas: detalle por cita y resumen con KPIs.
+- PDF generado en orientacion horizontal (landscape) con header de marca MiCorte y tabla con filas alternas.
+- Reporte de inventario incluye columna de valuacion (stock x precio) y alerta de minimo por fila.
+- Reporte de estilistas incluye tasa de no-show calculada en SQL.

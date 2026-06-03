@@ -5,7 +5,7 @@ const db = require('../config/db');
 async function getIngresos(empresa_id, { fecha_inicio, fecha_fin, sucursal_id }) {
   let sql = `
     SELECT
-      DATE(c.fecha_hora)         AS fecha,
+      DATE_FORMAT(c.fecha_hora, '%Y-%m-%d') AS fecha,
       suc.nombre                 AS sucursal,
       e.nombre                   AS estilista,
       s.nombre                   AS servicio,
@@ -26,7 +26,7 @@ async function getIngresos(empresa_id, { fecha_inicio, fecha_fin, sucursal_id })
   if (fecha_fin)    { sql += ` AND c.fecha_hora <= ?`; params.push(fecha_fin); }
   if (sucursal_id)  { sql += ` AND c.sucursal_id = ?`; params.push(sucursal_id); }
 
-  sql += ` GROUP BY DATE(c.fecha_hora), c.sucursal_id, c.estilista_id, c.servicio_id
+  sql += ` GROUP BY DATE_FORMAT(c.fecha_hora, '%Y-%m-%d'), c.sucursal_id, suc.nombre, c.estilista_id, e.nombre, c.servicio_id, s.nombre
            ORDER BY fecha DESC, ingresos DESC`;
 
   const [rows] = await db.execute(sql, params);
@@ -61,7 +61,7 @@ async function getCitas(empresa_id, { fecha, sucursal_id, estilista_id }) {
     SELECT
       c.id,
       DATE_FORMAT(c.fecha_hora, '%H:%i') AS hora,
-      DATE(c.fecha_hora)                 AS fecha,
+      DATE_FORMAT(c.fecha_hora, '%Y-%m-%d') AS fecha,
       cl.nombre                          AS cliente,
       cl.telefono                        AS cliente_telefono,
       e.nombre                           AS estilista,
@@ -145,7 +145,7 @@ async function getInventarioResumen(empresa_id, { sucursal_id }) {
 async function getNoShows(empresa_id, { fecha_inicio, fecha_fin, sucursal_id }) {
   let sql = `
     SELECT
-      DATE(c.fecha_hora)  AS fecha,
+      DATE_FORMAT(c.fecha_hora, '%Y-%m-%d') AS fecha,
       suc.nombre          AS sucursal,
       e.nombre            AS estilista,
       cl.nombre           AS cliente,
@@ -219,7 +219,7 @@ async function getEstilistas(empresa_id, { fecha_inicio, fecha_fin, sucursal_id 
   if (fecha_fin)    { sql += ` AND c.fecha_hora <= ?`; params.push(fecha_fin); }
   if (sucursal_id)  { sql += ` AND c.sucursal_id = ?`; params.push(sucursal_id); }
 
-  sql += ` GROUP BY c.estilista_id, c.sucursal_id
+  sql += ` GROUP BY c.estilista_id, e.nombre, c.sucursal_id, suc.nombre
            ORDER BY ingresos_generados DESC`;
 
   const [rows] = await db.execute(sql, params);
