@@ -183,12 +183,29 @@ async function cambiarEstado(id, empresa_id, nuevoEstado, userRoles) {
   await citaRepo.updateEstado(id, empresa_id, nuevoEstado);
   const citaActualizada = await citaRepo.findById(id, empresa_id);
 
-  // Al completar una cita, generar solicitud de reseña (non-blocking)
+  // Al completar una cita, generar reseña y acumular puntos (non-blocking)
   if (nuevoEstado === 'completada') {
     const resenaService = require('../services/resena.service');
     resenaService.generarParaCita(citaActualizada).catch(err =>
       console.error('[RESENA] Error generando reseña:', err.message)
     );
+
+    const lealtadRepo  = require('../repositories/lealtad.repository');
+    const PUNTOS_POR_PESO = parseFloat(process.env.PUNTOS_POR_PESO || '0.1');
+    const puntos = Math.floor(parseFloat(citaActualizada.precio_final) * PUNTOS_POR_PESO);
+    if (puntos > 0) {
+      lealtadRepo.registrarMovimiento({
+        empresa_id:  citaActualizada.empresa_id,
+        cliente_id:  citaActualizada.cliente_id,
+        tipo:        'acumulacion',
+        puntos,
+        origen_tipo: 'cita',
+        origen_id:   citaActualizada.id,
+        descripcion: `Cita completada — ${citaActualizada.servicio_nombre}`
+      }).then(() => lealtadRepo.actualizarPuntos(
+        citaActualizada.cliente_id, citaActualizada.empresa_id, puntos
+      )).catch(err => console.error('[LEALTAD] Error acumulando puntos por cita:', err.message));
+    }
   }
 
   return citaActualizada;

@@ -51,7 +51,7 @@ async function create(data) {
     [
       id, data.empresa_id, data.nombre, data.email,
       data.telefono        || null,
-      data.fecha_nacimiento || null
+      data.fecha_nacimiento ? data.fecha_nacimiento.slice(0, 10) : null
     ]
   );
   return findById(id, data.empresa_id);
@@ -64,8 +64,8 @@ async function update(id, empresa_id, data) {
      WHERE id = ? AND empresa_id = ? AND deleted_at IS NULL`,
     [
       data.nombre, data.email,
-      data.telefono         || null,
-      data.fecha_nacimiento || null,
+      data.telefono        || null,
+      data.fecha_nacimiento ? data.fecha_nacimiento.slice(0, 10) : null,
       id, empresa_id
     ]
   );

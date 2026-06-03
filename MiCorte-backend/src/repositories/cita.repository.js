@@ -1,6 +1,13 @@
 const db             = require('../config/db');
 const { v4: uuidv4 } = require('uuid');
 
+// MySQL DATETIME no acepta el formato ISO 8601 con T y Z.
+// Convierte cualquier fecha a 'YYYY-MM-DD HH:MM:SS' (UTC).
+function toMysql(fechaIso) {
+  if (!fechaIso) return null;
+  return new Date(fechaIso).toISOString().slice(0, 19).replace('T', ' ');
+}
+
 async function findAll(empresa_id, filtros = {}) {
   let sql = `
     SELECT c.id, c.empresa_id, c.sucursal_id, c.cliente_id, c.estilista_id,
@@ -29,11 +36,11 @@ async function findAll(empresa_id, filtros = {}) {
   }
   if (filtros.fecha_inicio) {
     sql += ` AND c.fecha_hora >= ?`;
-    params.push(filtros.fecha_inicio);
+    params.push(toMysql(filtros.fecha_inicio));
   }
   if (filtros.fecha_fin) {
     sql += ` AND c.fecha_hora <= ?`;
-    params.push(filtros.fecha_fin);
+    params.push(toMysql(filtros.fecha_fin));
   }
   if (filtros.estado) {
     sql += ` AND c.estado = ?`;
@@ -69,6 +76,7 @@ async function findById(id, empresa_id) {
 }
 
 async function findOverlapping(estilista_id, empresa_id, fecha_hora, duracion_min) {
+  const fh = toMysql(fecha_hora);
   const [rows] = await db.execute(
     `SELECT id FROM citas
      WHERE estilista_id = ?
@@ -77,7 +85,7 @@ async function findOverlapping(estilista_id, empresa_id, fecha_hora, duracion_mi
        AND estado IN ('confirmada', 'en_proceso')
        AND fecha_hora < DATE_ADD(?, INTERVAL ? MINUTE)
        AND DATE_ADD(fecha_hora, INTERVAL duracion_min MINUTE) > ?`,
-    [estilista_id, empresa_id, fecha_hora, duracion_min, fecha_hora]
+    [estilista_id, empresa_id, fh, duracion_min, fh]
   );
   return rows;
 }
@@ -131,7 +139,7 @@ async function create(data) {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id, data.empresa_id, data.sucursal_id, data.cliente_id,
-      data.estilista_id, data.servicio_id, data.fecha_hora,
+      data.estilista_id, data.servicio_id, toMysql(data.fecha_hora),
       data.duracion_min, data.precio_final, data.descuento || 0,
       data.metodo_pago, data.estado, data.notas_cliente || null
     ]

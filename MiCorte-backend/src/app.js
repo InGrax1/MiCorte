@@ -28,8 +28,14 @@ app.use('/api/estilistas', require('./routes/estilista.routes'));
 app.use('/api/servicios',  require('./routes/servicio.routes'));
 app.use('/api/clientes',   require('./routes/cliente.routes'));
 app.use('/api/citas',      require('./routes/cita.routes'));
-app.use('/api/pagos',      require('./routes/pago.routes'));
-app.use('/api/resenas',    require('./routes/resena.routes'));
+app.use('/api/pagos',       require('./routes/pago.routes'));
+app.use('/api/resenas',     require('./routes/resena.routes'));
+app.use('/api/categorias',  require('./routes/categoria.routes'));
+app.use('/api/productos',   require('./routes/producto.routes'));
+app.use('/api/inventario',  require('./routes/inventario.routes'));
+app.use('/api/ordenes',     require('./routes/orden.routes'));
+app.use('/api/pagos-orden', require('./routes/pagoOrden.routes'));
+app.use('/api/lealtad',     require('./routes/lealtad.routes'));
 
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
