@@ -36,6 +36,7 @@ app.use('/api/inventario',  require('./routes/inventario.routes'));
 app.use('/api/ordenes',     require('./routes/orden.routes'));
 app.use('/api/pagos-orden', require('./routes/pagoOrden.routes'));
 app.use('/api/lealtad',     require('./routes/lealtad.routes'));
+app.use('/api/reportes',    require('./routes/reporte.routes'));
 
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

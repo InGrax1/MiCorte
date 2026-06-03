@@ -165,4 +165,53 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Token de reseña es UUID de un solo uso con expiración de 7 días.
 - Cron corre cada 30 minutos buscando citas en la ventana de 23-25 h para enviar recordatorio.
 
-*Proxima fase: Fase 3 — Tienda (Productos, Inventario, Órdenes) y Lealtad*
+---
+
+## [Fase 3] — Tienda y Lealtad — 2026-06-03
+
+### Nuevos módulos
+
+| Módulo | Archivos creados |
+|---|---|
+| Categorias de producto | repository, service, controller, routes |
+| Productos | repository, service, controller, routes |
+| Inventario | repository, service, controller, routes |
+| Ordenes | repository, service, controller, routes |
+| Pagos de orden | repository, service, controller, routes |
+| Lealtad | repository, service, controller, routes |
+
+### Endpoints agregados
+
+| Método | Ruta | Auth | Roles |
+|---|---|---|---|
+| GET | /api/categorias | JWT | super_admin, admin_sucursal |
+| POST | /api/categorias | JWT | super_admin |
+| PATCH | /api/categorias/:id | JWT | super_admin |
+| DELETE | /api/categorias/:id | JWT | super_admin |
+| GET | /api/productos | JWT | super_admin, admin_sucursal, estilista |
+| GET | /api/productos/:id | JWT | super_admin, admin_sucursal, estilista |
+| POST | /api/productos | JWT | super_admin |
+| PATCH | /api/productos/:id | JWT | super_admin |
+| DELETE | /api/productos/:id | JWT | super_admin |
+| GET | /api/inventario | JWT | super_admin, admin_sucursal |
+| PATCH | /api/inventario/:producto_id/sucursal/:sucursal_id | JWT | super_admin, admin_sucursal |
+| GET | /api/ordenes | JWT | super_admin, admin_sucursal |
+| GET | /api/ordenes/:id | JWT | super_admin, admin_sucursal |
+| POST | /api/ordenes | JWT | super_admin, admin_sucursal |
+| PATCH | /api/ordenes/:id/estado | JWT | super_admin, admin_sucursal |
+| GET | /api/pagos-orden/orden/:orden_id | JWT | super_admin, admin_sucursal |
+| PATCH | /api/pagos-orden/orden/:orden_id/confirmar-efectivo | JWT | super_admin, admin_sucursal |
+| GET | /api/lealtad/cliente/:cliente_id | JWT | super_admin, admin_sucursal |
+| POST | /api/lealtad/ajuste | JWT | super_admin |
+
+### Comportamiento clave
+- Al crear un producto se inicializa automáticamente el inventario en todas las sucursales del tenant (stock 0, mínimo 5).
+- Crear una orden valida stock disponible, descuenta inventario y genera el pago en una sola transacción atómica.
+- Cancelar una orden repone el stock de todos los items y marca el pago como reembolsado si estaba pagado.
+- Al confirmar el pago en efectivo de una orden, esta avanza automáticamente a estado 'procesando'.
+- Al entregar una orden se acumulan puntos de fidelidad al cliente (non-blocking).
+- Al completar una cita también se acumulan puntos de fidelidad al cliente (non-blocking).
+- El filtro ?bajo_minimo=true en inventario devuelve solo los productos con stock igual o menor al mínimo configurado.
+- Ajuste manual de puntos acepta valores positivos (acumulación) y negativos (canje), con validación de saldo suficiente.
+- La tasa de acumulación es configurable via variable de entorno PUNTOS_POR_PESO (default: 0.1 — 1 punto por cada $10 MXN).
+- Todos los movimientos de puntos quedan auditados con tipo, origen y descripción.
