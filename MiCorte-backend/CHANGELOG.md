@@ -259,37 +259,36 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Reporte de estilistas incluye tasa de no-show calculada en SQL.
 
 ---
-
-## [Fase 4 — Parte 4] — Análisis de Retención — 2026-06-03
+## [Fase 4 — Parte 2] — Platform Admin — 2026-06-03
 
 ### Nuevos módulos
 
 | Módulo | Archivos creados |
 |---|---|
-| Retención | repository, service, controller, routes |
+| Platform Admin | repository, service, controller, routes |
+
+### Setup requerido
+- Usuario platform_admin creado manualmente en BD con empresa_id de tenant especial `MiCorte Platform`.
+- La empresa plataforma tiene ID fijo `00000000-0000-0000-0000-000000000001`.
 
 ### Endpoints agregados
 
 | Método | Ruta | Auth | Roles |
 |---|---|---|---|
-| GET | /api/retencion/resumen | JWT | super_admin, admin_sucursal |
-| GET | /api/retencion/en-riesgo | JWT | super_admin, admin_sucursal |
-| GET | /api/retencion/top-clientes | JWT | super_admin, admin_sucursal |
-| GET | /api/retencion/cohortes | JWT | super_admin, admin_sucursal |
-
-### Filtros disponibles
-- `?sucursal_id=` — filtrar por sucursal (todos los endpoints)
-- `?fecha_inicio=YYYY-MM-DD&fecha_fin=YYYY-MM-DD` — rango de fechas (resumen, top-clientes)
-- `?dias=30` — umbral de días sin visita para considerar cliente en riesgo (default: 30)
-- `?limite=20` — top N clientes (default: 20)
-- `?orden=gasto|visitas` — criterio de ordenamiento en top-clientes (default: gasto)
+| GET | /api/platform/metricas | JWT | platform_admin |
+| GET | /api/platform/tenants | JWT | platform_admin |
+| GET | /api/platform/tenants/:id | JWT | platform_admin |
+| PATCH | /api/platform/tenants/:id/toggle | JWT | platform_admin |
+| PATCH | /api/platform/tenants/:id/plan | JWT | platform_admin |
 
 ### Comportamiento clave
-- Resumen devuelve KPIs de retención: tasa de retención, clientes activos/en riesgo/perdidos, ticket promedio e ingresos totales de citas completadas.
-- En riesgo lista clientes cuya última visita supera el umbral de días configurado, ordenados por días sin visitar descendente.
-- Top clientes incluye visitas totales, gasto total, ticket promedio, fecha de primera y última visita, días sin visitar y promedio de días entre visitas.
-- Cohortes agrupa clientes por mes de primera visita y calcula cuántos regresaron (tuvieron 2+ visitas), mostrando los últimos 12 meses.
-- Todos los cálculos se basan exclusivamente en citas con estado completada.
+- Las rutas de platform NO usan tenantGuard — el rol platform_admin no tiene empresa_id de tenant real.
+- GET /metricas devuelve KPIs globales cross-tenant: total tenants, distribución de planes, citas, ordenes e ingresos totales de toda la plataforma, total de usuarios registrados.
+- GET /tenants lista todas las empresas con conteo de sucursales, usuarios, citas e ingresos acumulados.
+- GET /tenants/:id detalle completo del tenant: datos de empresa, sucursales activas y metricas calculadas con subqueries independientes (sin multiplicacion de filas).
+- PATCH toggle activa o suspende un tenant (activo 1 <-> 0).
+- PATCH plan cambia el plan de suscripcion (basico, pro, enterprise).
+
 
 ---
 
@@ -325,32 +324,33 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
-## [Fase 4 — Parte 2] — Platform Admin — 2026-06-03
+## [Fase 4 — Parte 4] — Análisis de Retención — 2026-06-03
 
 ### Nuevos módulos
 
 | Módulo | Archivos creados |
 |---|---|
-| Platform Admin | repository, service, controller, routes |
-
-### Setup requerido
-- Usuario platform_admin creado manualmente en BD con empresa_id de tenant especial `MiCorte Platform`.
-- La empresa plataforma tiene ID fijo `00000000-0000-0000-0000-000000000001`.
+| Retención | repository, service, controller, routes |
 
 ### Endpoints agregados
 
 | Método | Ruta | Auth | Roles |
 |---|---|---|---|
-| GET | /api/platform/metricas | JWT | platform_admin |
-| GET | /api/platform/tenants | JWT | platform_admin |
-| GET | /api/platform/tenants/:id | JWT | platform_admin |
-| PATCH | /api/platform/tenants/:id/toggle | JWT | platform_admin |
-| PATCH | /api/platform/tenants/:id/plan | JWT | platform_admin |
+| GET | /api/retencion/resumen | JWT | super_admin, admin_sucursal |
+| GET | /api/retencion/en-riesgo | JWT | super_admin, admin_sucursal |
+| GET | /api/retencion/top-clientes | JWT | super_admin, admin_sucursal |
+| GET | /api/retencion/cohortes | JWT | super_admin, admin_sucursal |
+
+### Filtros disponibles
+- `?sucursal_id=` — filtrar por sucursal (todos los endpoints)
+- `?fecha_inicio=YYYY-MM-DD&fecha_fin=YYYY-MM-DD` — rango de fechas (resumen, top-clientes)
+- `?dias=30` — umbral de días sin visita para considerar cliente en riesgo (default: 30)
+- `?limite=20` — top N clientes (default: 20)
+- `?orden=gasto|visitas` — criterio de ordenamiento en top-clientes (default: gasto)
 
 ### Comportamiento clave
-- Las rutas de platform NO usan tenantGuard — el rol platform_admin no tiene empresa_id de tenant real.
-- GET /metricas devuelve KPIs globales cross-tenant: total tenants, distribución de planes, citas, ordenes e ingresos totales de toda la plataforma, total de usuarios registrados.
-- GET /tenants lista todas las empresas con conteo de sucursales, usuarios, citas e ingresos acumulados.
-- GET /tenants/:id detalle completo del tenant: datos de empresa, sucursales activas y metricas calculadas con subqueries independientes (sin multiplicacion de filas).
-- PATCH toggle activa o suspende un tenant (activo 1 <-> 0).
-- PATCH plan cambia el plan de suscripcion (basico, pro, enterprise).
+- Resumen devuelve KPIs de retención: tasa de retención, clientes activos/en riesgo/perdidos, ticket promedio e ingresos totales de citas completadas.
+- En riesgo lista clientes cuya última visita supera el umbral de días configurado, ordenados por días sin visitar descendente.
+- Top clientes incluye visitas totales, gasto total, ticket promedio, fecha de primera y última visita, días sin visitar y promedio de días entre visitas.
+- Cohortes agrupa clientes por mes de primera visita y calcula cuántos regresaron (tuvieron 2+ visitas), mostrando los últimos 12 meses.
+- Todos los cálculos se basan exclusivamente en citas con estado completada.
