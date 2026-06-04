@@ -37,6 +37,7 @@ app.use('/api/ordenes',     require('./routes/orden.routes'));
 app.use('/api/pagos-orden', require('./routes/pagoOrden.routes'));
 app.use('/api/lealtad',     require('./routes/lealtad.routes'));
 app.use('/api/reportes',    require('./routes/reporte.routes'));
+app.use('/api/retencion',   require('./routes/retencion.routes'));
 app.use('/api/platform',    require('./routes/platform.routes'));
 
 // ── Health check ──────────────────────────────────────────────
