@@ -1,6 +1,7 @@
-const cron               = require('node-cron');
-const db                 = require('../config/db');
-const { sendRecordatorio } = require('../utils/email');
+const cron                    = require('node-cron');
+const db                      = require('../config/db');
+const { sendRecordatorio }    = require('../utils/email');
+const { sendRecordatorioSMS } = require('../utils/sms');
 
 // Busca citas confirmadas que estén en la ventana de 23-25 h a partir de ahora
 // y que todavía no tengan el recordatorio enviado.
@@ -10,10 +11,11 @@ cron.schedule('*/30 * * * *', async () => {
   try {
     [citas] = await db.execute(`
       SELECT c.id, c.fecha_hora, c.sucursal_id,
-             cl.email AS cliente_email, cl.nombre AS cliente_nombre,
-             e.nombre  AS estilista_nombre,
-             s.nombre  AS servicio_nombre,
-             suc.nombre AS sucursal_nombre
+             cl.email    AS cliente_email,    cl.nombre    AS cliente_nombre,
+             cl.telefono AS cliente_telefono,
+             e.nombre    AS estilista_nombre,
+             s.nombre    AS servicio_nombre,
+             suc.nombre  AS sucursal_nombre
       FROM citas c
       JOIN clientes cl    ON cl.id  = c.cliente_id
       JOIN estilistas e   ON e.id   = c.estilista_id
@@ -36,6 +38,10 @@ cron.schedule('*/30 * * * *', async () => {
       await db.execute(
         `UPDATE citas SET recordatorio_enviado = 1 WHERE id = ?`,
         [cita.id]
+      );
+      // SMS: non-blocking — si falla no afecta el registro del recordatorio
+      sendRecordatorioSMS(cita).catch(err =>
+        console.error(`[SMS] Recordatorio fallido ${cita.id}:`, err.message)
       );
     } catch (err) {
       console.error(`[CRON] Recordatorio fallido para cita ${cita.id}:`, err.message);

@@ -1,7 +1,8 @@
-const resenaRepo   = require('../repositories/resena.repository');
-const citaRepo     = require('../repositories/cita.repository');
-const { sendResena } = require('../utils/email');
-const { AppError } = require('../utils/errors');
+const resenaRepo          = require('../repositories/resena.repository');
+const citaRepo            = require('../repositories/cita.repository');
+const { sendResena }      = require('../utils/email');
+const { sendResenaSMS }   = require('../utils/sms');
+const { AppError }        = require('../utils/errors');
 
 async function listar(empresa_id, filtros) {
   return resenaRepo.findAll(empresa_id, filtros);
@@ -46,11 +47,20 @@ async function generarParaCita(cita) {
   // Marcar en la cita que se envió la solicitud de reseña
   await citaRepo.marcarResenaEnviada(cita.id);
 
-  // Enviar email — puede fallar sin revertir la reseña creada
+  // Email — puede fallar sin revertir la resena creada
   await sendResena({
     ...resena,
     sucursal_nombre: cita.sucursal_nombre
   });
+
+  // SMS — non-blocking, el objeto resena ya trae cliente_telefono de findByToken
+  sendResenaSMS({
+    telefono:         resena.cliente_telefono,
+    cliente_nombre:   resena.cliente_nombre,
+    token:            resena.token,
+    sucursal_nombre:  resena.sucursal_nombre,
+    estilista_nombre: resena.estilista_nombre
+  }).catch(err => console.error('[SMS] Resena fallida:', err.message));
 }
 
 async function toggleVisibilidad(id, empresa_id) {

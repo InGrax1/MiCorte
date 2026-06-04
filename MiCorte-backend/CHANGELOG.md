@@ -260,6 +260,38 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [Fase 4 — Parte 3] — SMS Twilio — 2026-06-03
+
+### Nueva dependencia
+| Paquete | Version | Uso |
+|---|---|---|
+| twilio | instalado | Envio de SMS transaccionales |
+
+### Nuevo modulo
+
+| Modulo | Archivo creado |
+|---|---|
+| SMS utility | utils/sms.js |
+
+### Archivos modificados
+- `jobs/recordatorio.job.js` — ahora tambien envia SMS de recordatorio (non-blocking).
+- `services/resena.service.js` — ahora tambien envia SMS con el enlace de resena (non-blocking).
+- `repositories/resena.repository.js` — `findByToken` incluye `cliente_telefono` para que el objeto resena lo traiga listo.
+
+### Variables de entorno nuevas
+- `TWILIO_ACCOUNT_SID` — SID de la cuenta Twilio.
+- `TWILIO_AUTH_TOKEN` — Auth token de Twilio.
+- `TWILIO_PHONE` — Numero de origen registrado en Twilio (formato E.164).
+
+### Comportamiento clave
+- Si las variables `TWILIO_*` no estan configuradas, los envios de SMS se omiten silenciosamente sin afectar email ni ningun otro flujo.
+- Si el cliente no tiene telefono registrado, el SMS se omite sin error.
+- El recordatorio por SMS se dispara despues de marcar `recordatorio_enviado = 1`; un fallo de SMS no revierte ese marcado.
+- El SMS de resena se dispara despues del email; un fallo de SMS no revierte la creacion de la resena.
+- Ambos SMS son fire-and-forget desde su punto de llamada, con logging de error en consola si fallan.
+
+---
+
 ## [Fase 4 — Parte 2] — Platform Admin — 2026-06-03
 
 ### Nuevos módulos

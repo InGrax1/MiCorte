@@ -40,9 +40,10 @@ async function findByToken(token) {
     `SELECT r.id, r.empresa_id, r.cita_id, r.cliente_id, r.estilista_id,
             r.token, r.token_exp, r.rating, r.comentario, r.visible,
             r.created_at, r.respondido_at,
-            cl.nombre  AS cliente_nombre,  cl.email AS cliente_email,
-            e.nombre   AS estilista_nombre,
-            suc.nombre AS sucursal_nombre
+            cl.nombre    AS cliente_nombre,  cl.email    AS cliente_email,
+            cl.telefono  AS cliente_telefono,
+            e.nombre     AS estilista_nombre,
+            suc.nombre   AS sucursal_nombre
      FROM resenas r
      JOIN clientes cl    ON cl.id  = r.cliente_id
      JOIN estilistas e   ON e.id   = r.estilista_id
