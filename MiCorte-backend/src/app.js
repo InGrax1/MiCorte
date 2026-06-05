@@ -30,6 +30,8 @@ app.use('/api/clientes',   require('./routes/cliente.routes'));
 app.use('/api/citas',      require('./routes/cita.routes'));
 app.use('/api/pagos',       require('./routes/pago.routes'));
 app.use('/api/resenas',     require('./routes/resena.routes'));
+app.use('/api/bloqueos',    require('./routes/bloqueo.routes'));
+app.use('/api/notas',       require('./routes/notaCliente.routes'));
 app.use('/api/categorias',  require('./routes/categoria.routes'));
 app.use('/api/productos',   require('./routes/producto.routes'));
 app.use('/api/inventario',  require('./routes/inventario.routes'));
