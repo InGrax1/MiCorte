@@ -63,8 +63,22 @@ async function crear(empresa_id, data) {
   }
 
   // 4. Calcular totales
-  const subtotal = parseFloat(itemsCompletos.reduce((s, i) => s + i.subtotal, 0).toFixed(2));
-  const total    = parseFloat((subtotal + costo_envio - descuento).toFixed(2));
+  const subtotal         = parseFloat(itemsCompletos.reduce((s, i) => s + i.subtotal, 0).toFixed(2));
+  const puntos_a_canjear = data.puntos_a_canjear || 0;
+  const MXN_POR_PUNTO    = parseFloat(process.env.PUNTOS_CAMBIO_MXN || '0.20');
+
+  let descuentoTotal = descuento;
+  if (puntos_a_canjear > 0) {
+    if (cliente.puntos_acumulados < puntos_a_canjear) {
+      throw new AppError(`Puntos insuficientes. Disponibles: ${cliente.puntos_acumulados}`, 422);
+    }
+    const descuento_puntos = parseFloat(
+      Math.min(puntos_a_canjear * MXN_POR_PUNTO, subtotal).toFixed(2)
+    );
+    descuentoTotal = parseFloat((descuento + descuento_puntos).toFixed(2));
+  }
+
+  const total = parseFloat(Math.max(0, subtotal + costo_envio - descuentoTotal).toFixed(2));
 
   // 5. Transacción: crear orden + items + descontar stock + crear pago
   const conn = await db.getConnection();
@@ -72,7 +86,7 @@ async function crear(empresa_id, data) {
   try {
     const orden_id = await ordenRepo.createConItems(conn, empresa_id, {
       sucursal_id, cliente_id, tipo_entrega, metodo_pago,
-      subtotal, costo_envio, descuento, total,
+      subtotal, costo_envio, descuento: descuentoTotal, total,
       direccion_envio, notas
     }, itemsCompletos);
 
@@ -85,6 +99,35 @@ async function crear(empresa_id, data) {
     await pagoOrdenRepo.createConn(conn, { orden_id, empresa_id, monto: total, metodo: metodo_pago });
 
     await conn.commit();
+
+    // Alerta de stock bajo por cada item (non-blocking)
+    Promise.all(
+      itemsCompletos.map(item =>
+        inventarioRepo.getInfoAlerta(item.producto_id, sucursal_id).then(info => {
+          if (info && info.stock_actual <= info.stock_minimo && info.admin_email) {
+            const { sendStockAlerta } = require('../utils/email');
+            return sendStockAlerta(info);
+          }
+        })
+      )
+    ).catch(err => console.error('[STOCK] Error enviando alertas de orden:', err.message));
+
+    // Registrar canje de puntos (non-blocking)
+    if (puntos_a_canjear > 0) {
+      const descuento_puntos = parseFloat(
+        Math.min(puntos_a_canjear * MXN_POR_PUNTO, subtotal).toFixed(2)
+      );
+      lealtadRepo.registrarMovimiento({
+        empresa_id,
+        cliente_id,
+        tipo:        'canje',
+        puntos:      -puntos_a_canjear,
+        origen_tipo: 'orden',
+        origen_id:   orden_id,
+        descripcion: `Canje de puntos — ${puntos_a_canjear} pts por $${descuento_puntos} MXN`
+      }).then(() => lealtadRepo.actualizarPuntos(cliente_id, empresa_id, -puntos_a_canjear))
+        .catch(err => console.error('[LEALTAD] Error registrando canje en orden:', err.message));
+    }
 
     return obtener(orden_id, empresa_id);
   } catch (err) {

@@ -13,10 +13,11 @@ const schemaCreate = Joi.object({
   tipo_entrega:    Joi.string().valid('envio', 'recoger_tienda').required(),
   metodo_pago:     Joi.string().valid('online', 'efectivo').required(),
   items:           Joi.array().items(schemaItem).min(1).required(),
-  costo_envio:     Joi.number().min(0).precision(2).optional(),
-  descuento:       Joi.number().min(0).precision(2).optional(),
-  direccion_envio: Joi.string().max(500).optional(),
-  notas:           Joi.string().max(500).optional()
+  costo_envio:      Joi.number().min(0).precision(2).optional(),
+  descuento:        Joi.number().min(0).precision(2).optional(),
+  puntos_a_canjear: Joi.number().integer().min(0).optional(),
+  direccion_envio:  Joi.string().max(500).optional(),
+  notas:            Joi.string().max(500).optional()
 });
 
 const schemaEstado = Joi.object({

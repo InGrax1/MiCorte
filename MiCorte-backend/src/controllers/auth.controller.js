@@ -12,6 +12,14 @@ const { ok, created, badRequest } = require('../utils/response');
 
 // ── Esquemas de validación ────────────────────────────────────
 
+const registroSchema = Joi.object({
+  empresa_nombre: Joi.string().max(120).required(),
+  admin_nombre:   Joi.string().max(120).required(),
+  admin_email:    Joi.string().email().required(),
+  password:       Joi.string().min(8).required(),
+  telefono:       Joi.string().max(20).optional()
+});
+
 const loginSchema = Joi.object({
   email:    Joi.string().email().required().messages({
     'string.email': 'El email no tiene un formato válido',
@@ -77,4 +85,13 @@ async function me(req, res, next) {
   }
 }
 
-module.exports = { login, refresh, me };
+async function registro(req, res, next) {
+  try {
+    const { error, value } = registroSchema.validate(req.body, { abortEarly: false });
+    if (error) return badRequest(res, 'Datos inválidos', error.details.map(d => d.message));
+    const data = await authService.registro(value);
+    return created(res, data, 'Empresa registrada exitosamente');
+  } catch (err) { next(err); }
+}
+
+module.exports = { login, refresh, me, registro };

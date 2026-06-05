@@ -3,7 +3,10 @@ const estilistaRepo = require('../repositories/estilista.repository');
 const servicioRepo  = require('../repositories/servicio.repository');
 const clienteRepo   = require('../repositories/cliente.repository');
 const pagoRepo      = require('../repositories/pago.repository');
+const promocionRepo = require('../repositories/promocion.repository');
 const { AppError }  = require('../utils/errors');
+
+const MXN_POR_PUNTO = () => parseFloat(process.env.PUNTOS_CAMBIO_MXN || '0.20');
 
 // ── Transiciones de estado permitidas ─────────────────────────
 // { estadoActual: { estadoDestino: [rolesPermitidos] } }
@@ -118,9 +121,35 @@ async function crear(empresa_id, data) {
 
   // 2. Resolve precio_final from servicios_sucursales
   const sucursalEntry = (servicio.sucursales || []).find(s => s.sucursal_id === data.sucursal_id);
-  const precio_final  = sucursalEntry && sucursalEntry.precio != null
-    ? sucursalEntry.precio
-    : servicio.precio_base;
+  let precio_final  = sucursalEntry && sucursalEntry.precio != null
+    ? parseFloat(sucursalEntry.precio)
+    : parseFloat(servicio.precio_base);
+  let descuento = 0;
+
+  // 2a. Aplicar promocion activa si existe
+  const promo = await promocionRepo.findAplicable(
+    empresa_id, data.servicio_id, cliente.fecha_nacimiento, data.fecha_hora
+  );
+  if (promo) {
+    const d = promo.descuento_tipo === 'porcentaje'
+      ? parseFloat((precio_final * promo.descuento_valor / 100).toFixed(2))
+      : Math.min(parseFloat(promo.descuento_valor), precio_final);
+    descuento     = d;
+    precio_final  = parseFloat((precio_final - d).toFixed(2));
+  }
+
+  // 2b. Canje de puntos (opcional)
+  const puntos_a_canjear = data.puntos_a_canjear || 0;
+  if (puntos_a_canjear > 0) {
+    if (cliente.puntos_acumulados < puntos_a_canjear) {
+      throw new AppError(`Puntos insuficientes. Disponibles: ${cliente.puntos_acumulados}`, 422);
+    }
+    const descuento_puntos = parseFloat(
+      Math.min(puntos_a_canjear * MXN_POR_PUNTO(), precio_final).toFixed(2)
+    );
+    descuento    = parseFloat((descuento + descuento_puntos).toFixed(2));
+    precio_final = parseFloat((precio_final - descuento_puntos).toFixed(2));
+  }
 
   // 3. fecha_hora must be in the future
   if (new Date(data.fecha_hora) <= new Date()) {
@@ -145,13 +174,13 @@ async function crear(empresa_id, data) {
     fecha_hora:   data.fecha_hora,
     duracion_min: servicio.duracion_min,
     precio_final,
-    descuento:    0,
+    descuento,
     metodo_pago:  data.metodo_pago,
     estado:       'pendiente_pago',
     notas_cliente: data.notas_cliente || null
   });
 
-  // 6. Auto-crear registro de pago (best-effort — no bloquea la respuesta)
+  // 6. Auto-crear registro de pago (best-effort)
   pagoRepo.create({
     cita_id:    cita.id,
     empresa_id,
@@ -159,6 +188,24 @@ async function crear(empresa_id, data) {
     metodo:     cita.metodo_pago,
     estado:     'pendiente'
   }).catch(err => console.error('[PAGO] Error auto-creando pago:', err.message));
+
+  // 7. Registrar canje de puntos si aplica (non-blocking)
+  if (puntos_a_canjear > 0) {
+    const lealtadRepo = require('../repositories/lealtad.repository');
+    const desc_puntos = parseFloat(
+      Math.min(puntos_a_canjear * MXN_POR_PUNTO(), parseFloat(servicio.precio_base)).toFixed(2)
+    );
+    lealtadRepo.registrarMovimiento({
+      empresa_id,
+      cliente_id:  data.cliente_id,
+      tipo:        'canje',
+      puntos:      -puntos_a_canjear,
+      origen_tipo: 'cita',
+      origen_id:   cita.id,
+      descripcion: `Canje de puntos — ${puntos_a_canjear} pts por $${desc_puntos} MXN`
+    }).then(() => lealtadRepo.actualizarPuntos(data.cliente_id, empresa_id, -puntos_a_canjear))
+      .catch(err => console.error('[LEALTAD] Error registrando canje en cita:', err.message));
+  }
 
   return cita;
 }

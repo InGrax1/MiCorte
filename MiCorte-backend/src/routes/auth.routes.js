@@ -18,6 +18,9 @@ const loginLimiter = rateLimit({
   message: { ok: false, error: 'Demasiados intentos de login. Intenta de nuevo en 15 minutos.' }
 });
 
+// POST /api/auth/registro — onboarding público de nuevo tenant
+router.post('/registro', authController.registro);
+
 // POST /api/auth/login
 // Body: { email, password }
 router.post('/login', loginLimiter, authController.login);

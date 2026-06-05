@@ -106,7 +106,23 @@ async function validarStock(sucursal_id, empresa_id, items) {
   return faltantes;
 }
 
+// Devuelve datos para la alerta de stock: info de producto, sucursal y email del admin
+async function getInfoAlerta(producto_id, sucursal_id) {
+  const [rows] = await db.execute(`
+    SELECT i.stock_actual, i.stock_minimo,
+           p.nombre   AS producto_nombre,
+           s.nombre   AS sucursal_nombre,
+           e.email_contacto AS admin_email
+    FROM inventario i
+    JOIN productos  p ON p.id = i.producto_id
+    JOIN sucursales s ON s.id = i.sucursal_id
+    JOIN empresas   e ON e.id = i.empresa_id
+    WHERE i.producto_id = ? AND i.sucursal_id = ?
+  `, [producto_id, sucursal_id]);
+  return rows[0] || null;
+}
+
 module.exports = {
   findAll, findByProductoSucursal, initRegistro,
-  ajustar, descontar, reponer, validarStock
+  ajustar, descontar, reponer, validarStock, getInfoAlerta
 };

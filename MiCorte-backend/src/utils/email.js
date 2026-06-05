@@ -136,4 +136,32 @@ async function sendResena(resena) {
   });
 }
 
-module.exports = { sendConfirmacion, sendRecordatorio, sendResena };
+async function sendStockAlerta({ admin_email, producto_nombre, stock_actual, stock_minimo, sucursal_nombre }) {
+  if (!admin_email) return;
+
+  await transporter.sendMail({
+    from:    `"MiCorte" <${process.env.SMTP_USER}>`,
+    to:      admin_email,
+    subject: `Alerta de stock bajo — ${producto_nombre}`,
+    text: [
+      `El producto "${producto_nombre}" en ${sucursal_nombre} está por debajo del stock mínimo.`,
+      `Stock actual : ${stock_actual}`,
+      `Stock mínimo : ${stock_minimo}`,
+      'Realiza una reposición a la brevedad.',
+      '— Sistema MiCorte'
+    ].join('\n'),
+    html: `
+      <p>El producto <strong>${producto_nombre}</strong> en <strong>${sucursal_nombre}</strong>
+         ha llegado al stock mínimo.</p>
+      <table cellpadding="6" style="border-collapse:collapse;">
+        <tr><td><strong>Stock actual</strong></td>
+            <td style="color:#e53e3e;font-weight:bold;">${stock_actual}</td></tr>
+        <tr><td><strong>Stock mínimo</strong></td><td>${stock_minimo}</td></tr>
+      </table>
+      <p>Realiza una reposición a la brevedad para evitar quiebres de inventario.</p>
+      <p style="color:#888;font-size:12px;">— Sistema MiCorte</p>
+    `
+  });
+}
+
+module.exports = { sendConfirmacion, sendRecordatorio, sendResena, sendStockAlerta };

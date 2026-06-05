@@ -356,6 +356,37 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [Fase 4 — Parte 6] — Gaps del Spec — 2026-06-04
+
+### Variable de entorno nueva
+- `PUNTOS_CAMBIO_MXN` — valor en MXN de cada punto al canjear (default: 0.20 = 100 puntos = $20 MXN).
+
+### Módulos modificados
+
+| Módulo | Cambio |
+|---|---|
+| auth.service + controller + routes | Nuevo endpoint público de onboarding de tenant |
+| cita.service + controller | Aplicación automática de promociones y canje de puntos al agendar |
+| orden.service + controller | Canje de puntos al crear una orden |
+| inventario.repository + service | Alerta de stock mínimo por email al admin |
+| email.js | Nueva función sendStockAlerta |
+
+### Endpoint nuevo
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| POST | /api/auth/registro | Público | Crea empresa + super_admin en transacción atómica y devuelve tokens |
+
+### Comportamiento clave
+- El registro de nuevo tenant es completamente público. Genera slug URL-friendly automáticamente a partir del nombre del negocio, con sufijo UUID si hay colisión.
+- Al registrarse el negocio queda en plan basico. El auto-login devuelve access_token y refresh_token listos para usar.
+- Al crear una cita el sistema busca automáticamente la promoción activa con mayor descuento aplicable al cliente, servicio y fecha. El descuento se refleja en precio_final y en el campo descuento.
+- El canje de puntos es opcional (campo puntos_a_canjear en POST /api/citas y POST /api/ordenes). Se valida saldo, se aplica como descuento adicional y se registra el movimiento en movimientos_puntos con tipo canje.
+- Promoción y canje de puntos son acumulables: se aplica primero la promo y luego el descuento por puntos.
+- Cuando el stock de un producto cae al mínimo tras un ajuste manual o una orden, se envía email de alerta al email_contacto de la empresa (non-blocking).
+
+---
+
 ## [Fase 4 — Parte 5] — Módulos Pendientes — 2026-06-04
 
 ### Nueva dependencia

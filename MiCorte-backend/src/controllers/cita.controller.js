@@ -25,7 +25,8 @@ const schemaCrear = Joi.object({
     'any.required': 'El método de pago es requerido',
     'any.only':     'El método de pago debe ser "online" o "efectivo"'
   }),
-  notas_cliente: Joi.string().optional().allow(null, '')
+  notas_cliente:    Joi.string().optional().allow(null, ''),
+  puntos_a_canjear: Joi.number().integer().min(0).optional()
 });
 
 const schemaEstado = Joi.object({
