@@ -323,6 +323,38 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Ambos SMS son fire-and-forget desde su punto de llamada, con logging de error en consola si fallan.
 
 ---
+## [Fase 4 — Parte 4] — Análisis de Retención — 2026-06-03
+
+### Nuevos módulos
+
+| Módulo | Archivos creados |
+|---|---|
+| Retención | repository, service, controller, routes |
+
+### Endpoints agregados
+
+| Método | Ruta | Auth | Roles |
+|---|---|---|---|
+| GET | /api/retencion/resumen | JWT | super_admin, admin_sucursal |
+| GET | /api/retencion/en-riesgo | JWT | super_admin, admin_sucursal |
+| GET | /api/retencion/top-clientes | JWT | super_admin, admin_sucursal |
+| GET | /api/retencion/cohortes | JWT | super_admin, admin_sucursal |
+
+### Filtros disponibles
+- `?sucursal_id=` — filtrar por sucursal (todos los endpoints)
+- `?fecha_inicio=YYYY-MM-DD&fecha_fin=YYYY-MM-DD` — rango de fechas (resumen, top-clientes)
+- `?dias=30` — umbral de días sin visita para considerar cliente en riesgo (default: 30)
+- `?limite=20` — top N clientes (default: 20)
+- `?orden=gasto|visitas` — criterio de ordenamiento en top-clientes (default: gasto)
+
+### Comportamiento clave
+- Resumen devuelve KPIs de retención: tasa de retención, clientes activos/en riesgo/perdidos, ticket promedio e ingresos totales de citas completadas.
+- En riesgo lista clientes cuya última visita supera el umbral de días configurado, ordenados por días sin visitar descendente.
+- Top clientes incluye visitas totales, gasto total, ticket promedio, fecha de primera y última visita, días sin visitar y promedio de días entre visitas.
+- Cohortes agrupa clientes por mes de primera visita y calcula cuántos regresaron (tuvieron 2+ visitas), mostrando los últimos 12 meses.
+- Todos los cálculos se basan exclusivamente en citas con estado completada.
+
+---
 
 ## [Fase 4 — Parte 5] — Módulos Pendientes — 2026-06-04
 
@@ -366,36 +398,3 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Promociones soportan 4 tipos: cumpleanos (recurrente por mes/dia), fecha_especial, aniversario y manual. El descuento puede ser porcentaje o monto_fijo y puede limitarse a servicios especificos.
 - Rate limiting en POST /api/auth/login: maximo 5 intentos por IP cada 15 minutos.
 - Al confirmar el pago de una cita (efectivo o MercadoPago webhook), se envia automaticamente un correo de confirmacion con QR al cliente. El QR codifica el cita_id para que el quiosco lo escanee y haga check-in sin escritura manual.
-
----
-
-## [Fase 4 — Parte 4] — Análisis de Retención — 2026-06-03
-
-### Nuevos módulos
-
-| Módulo | Archivos creados |
-|---|---|
-| Retención | repository, service, controller, routes |
-
-### Endpoints agregados
-
-| Método | Ruta | Auth | Roles |
-|---|---|---|---|
-| GET | /api/retencion/resumen | JWT | super_admin, admin_sucursal |
-| GET | /api/retencion/en-riesgo | JWT | super_admin, admin_sucursal |
-| GET | /api/retencion/top-clientes | JWT | super_admin, admin_sucursal |
-| GET | /api/retencion/cohortes | JWT | super_admin, admin_sucursal |
-
-### Filtros disponibles
-- `?sucursal_id=` — filtrar por sucursal (todos los endpoints)
-- `?fecha_inicio=YYYY-MM-DD&fecha_fin=YYYY-MM-DD` — rango de fechas (resumen, top-clientes)
-- `?dias=30` — umbral de días sin visita para considerar cliente en riesgo (default: 30)
-- `?limite=20` — top N clientes (default: 20)
-- `?orden=gasto|visitas` — criterio de ordenamiento en top-clientes (default: gasto)
-
-### Comportamiento clave
-- Resumen devuelve KPIs de retención: tasa de retención, clientes activos/en riesgo/perdidos, ticket promedio e ingresos totales de citas completadas.
-- En riesgo lista clientes cuya última visita supera el umbral de días configurado, ordenados por días sin visitar descendente.
-- Top clientes incluye visitas totales, gasto total, ticket promedio, fecha de primera y última visita, días sin visitar y promedio de días entre visitas.
-- Cohortes agrupa clientes por mes de primera visita y calcula cuántos regresaron (tuvieron 2+ visitas), mostrando los últimos 12 meses.
-- Todos los cálculos se basan exclusivamente en citas con estado completada.
