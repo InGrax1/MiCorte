@@ -324,6 +324,51 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [Fase 4 — Parte 5] — Módulos Pendientes — 2026-06-04
+
+### Nueva dependencia
+| Paquete | Version | Uso |
+|---|---|---|
+| express-rate-limit | instalado | Rate limiting en endpoint de login |
+| qrcode | instalado | Generacion de QR para check-in en correo de confirmacion |
+
+### Nuevos módulos
+
+| Módulo | Archivos creados |
+|---|---|
+| Bloqueos de agenda | repository, service, controller, routes |
+| Notas del cliente | repository, service, controller, routes |
+| Modo quiosco (check-in) | repository, service, controller, routes |
+| Promociones | repository, service, controller, routes |
+
+### Endpoints agregados
+
+| Método | Ruta | Auth | Roles |
+|---|---|---|---|
+| GET | /api/bloqueos | JWT | super_admin, admin_sucursal, estilista |
+| POST | /api/bloqueos | JWT | super_admin, admin_sucursal |
+| DELETE | /api/bloqueos/:id | JWT | super_admin, admin_sucursal |
+| GET | /api/notas/cliente/:cliente_id | JWT | super_admin, admin_sucursal, estilista |
+| POST | /api/notas | JWT | estilista |
+| GET | /api/quiosco/:sucursal_id | Público | — |
+| GET | /api/quiosco/:sucursal_id/buscar | Público | — |
+| POST | /api/quiosco/:sucursal_id/checkin | Público | — |
+| GET | /api/promociones | JWT | super_admin, admin_sucursal |
+| GET | /api/promociones/:id | JWT | super_admin, admin_sucursal |
+| POST | /api/promociones | JWT | super_admin |
+| PUT | /api/promociones/:id | JWT | super_admin |
+| DELETE | /api/promociones/:id | JWT | super_admin |
+
+### Comportamiento clave
+- Bloqueos de agenda soportan cierre de sucursal completa (estilista_id null) o bloqueo individual por estilista. El modulo de disponibilidad ya los consulta para calcular slots libres.
+- Notas del cliente son inmutables: el estilista puede agregar pero no editar ni eliminar. El perfil del estilista se resuelve automaticamente desde el JWT.
+- Modo quiosco es completamente publico (sin JWT). La tablet de recepcion accede via sucursal_id. El check-in actualiza checkin_at y avanza la cita a en_proceso.
+- Promociones soportan 4 tipos: cumpleanos (recurrente por mes/dia), fecha_especial, aniversario y manual. El descuento puede ser porcentaje o monto_fijo y puede limitarse a servicios especificos.
+- Rate limiting en POST /api/auth/login: maximo 5 intentos por IP cada 15 minutos.
+- Al confirmar el pago de una cita (efectivo o MercadoPago webhook), se envia automaticamente un correo de confirmacion con QR al cliente. El QR codifica el cita_id para que el quiosco lo escanee y haga check-in sin escritura manual.
+
+---
+
 ## [Fase 4 — Parte 4] — Análisis de Retención — 2026-06-03
 
 ### Nuevos módulos

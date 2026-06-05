@@ -32,6 +32,13 @@ async function confirmarEfectivo(cita_id, empresa_id) {
   await pagoRepo.marcarPagado(cita_id, null);
   await citaRepo.updateEstado(cita_id, empresa_id, 'confirmada');
 
+  // Email de confirmacion con QR — non-blocking
+  citaRepo.findById(cita_id, empresa_id).then(citaCompleta => {
+    if (!citaCompleta) return;
+    const { sendConfirmacion } = require('../utils/email');
+    return sendConfirmacion(citaCompleta);
+  }).catch(err => console.error('[EMAIL] Confirmacion fallida:', err.message));
+
   return pagoRepo.findByCitaId(cita_id, empresa_id);
 }
 
@@ -126,6 +133,14 @@ async function procesarWebhookMP(headers, body) {
   if (payment.status === 'approved') {
     await pagoRepo.marcarPagado(cita_id, dataId);
     await citaRepo.updateEstado(cita_id, pago.empresa_id, 'confirmada');
+
+    // Email de confirmacion con QR — non-blocking
+    citaRepo.findById(cita_id, pago.empresa_id).then(citaCompleta => {
+      if (!citaCompleta) return;
+      const { sendConfirmacion } = require('../utils/email');
+      return sendConfirmacion(citaCompleta);
+    }).catch(err => console.error('[EMAIL] Confirmacion MP fallida:', err.message));
+
   } else if (payment.status === 'refunded' || payment.status === 'charged_back') {
     await pagoRepo.marcarReembolsado(cita_id);
     await citaRepo.updateEstado(cita_id, pago.empresa_id, 'cancelada');

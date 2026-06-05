@@ -4,6 +4,7 @@
  * Exporta helpers de envío reutilizables por jobs y services.
  */
 const nodemailer = require('nodemailer');
+const QRCode     = require('qrcode');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -19,6 +20,48 @@ function formatFecha(fechaHora) {
     timeZone: 'America/Mexico_City',
     weekday: 'long', year: 'numeric', month: 'long',
     day: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+}
+
+async function sendConfirmacion(cita) {
+  const fecha    = formatFecha(cita.fecha_hora);
+  // QR codifica el cita_id — el quiosco lo escanea para hacer check-in automático
+  const qrBuffer = await QRCode.toBuffer(cita.id, { width: 200 });
+
+  await transporter.sendMail({
+    from:    `"MiCorte" <${process.env.SMTP_USER}>`,
+    to:      cita.cliente_email,
+    subject: `Cita confirmada — ${cita.sucursal_nombre}`,
+    attachments: [{
+      filename: 'qr-checkin.png',
+      content:  qrBuffer,
+      cid:      'qr-checkin'
+    }],
+    text: [
+      `Hola ${cita.cliente_nombre}, tu cita ha sido confirmada.`,
+      '',
+      `Fecha y hora : ${fecha}`,
+      `Servicio     : ${cita.servicio_nombre}`,
+      `Estilista    : ${cita.estilista_nombre}`,
+      `Sucursal     : ${cita.sucursal_nombre}`,
+      '',
+      'Presenta el código QR adjunto en recepción para hacer tu check-in.',
+      '',
+      '— Equipo MiCorte'
+    ].join('\n'),
+    html: `
+      <p>Hola <strong>${cita.cliente_nombre}</strong>, tu cita ha sido confirmada.</p>
+      <table cellpadding="6" style="border-collapse:collapse;">
+        <tr><td><strong>Fecha y hora</strong></td><td>${fecha}</td></tr>
+        <tr><td><strong>Servicio</strong></td><td>${cita.servicio_nombre}</td></tr>
+        <tr><td><strong>Estilista</strong></td><td>${cita.estilista_nombre}</td></tr>
+        <tr><td><strong>Sucursal</strong></td><td>${cita.sucursal_nombre}</td></tr>
+      </table>
+      <p>Presenta este QR en recepción para hacer tu check-in sin esperar:</p>
+      <img src="cid:qr-checkin" alt="QR Check-in"
+           style="width:200px;height:200px;display:block;margin:16px 0;" />
+      <p style="color:#888;font-size:12px;">— Equipo MiCorte</p>
+    `
   });
 }
 
@@ -93,4 +136,4 @@ async function sendResena(resena) {
   });
 }
 
-module.exports = { sendRecordatorio, sendResena };
+module.exports = { sendConfirmacion, sendRecordatorio, sendResena };
