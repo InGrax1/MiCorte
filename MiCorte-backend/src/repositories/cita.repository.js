@@ -61,6 +61,7 @@ async function findById(id, empresa_id) {
             c.checkin_at, c.created_at, c.updated_at,
             cl.nombre  AS cliente_nombre,  cl.email AS cliente_email,
                                            cl.telefono AS cliente_telefono,
+                                           cl.fecha_nacimiento AS cliente_fecha_nacimiento,
             e.nombre   AS estilista_nombre,
             s.nombre   AS servicio_nombre,
             suc.nombre AS sucursal_nombre

@@ -8,8 +8,8 @@ const schemaCrear = Joi.object({
   cliente_id:    Joi.string().pattern(UUID_PATTERN).required().messages({
     'any.required': 'El cliente es requerido'
   }),
-  estilista_id:  Joi.string().pattern(UUID_PATTERN).required().messages({
-    'any.required': 'El estilista es requerido'
+  estilista_id:  Joi.string().pattern(UUID_PATTERN).optional().allow(null).messages({
+    'string.pattern.base': 'El estilista_id debe ser un UUID válido'
   }),
   servicio_id:   Joi.string().pattern(UUID_PATTERN).required().messages({
     'any.required': 'El servicio es requerido'

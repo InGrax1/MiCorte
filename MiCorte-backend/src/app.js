@@ -21,6 +21,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── Auditoría (non-blocking, loguea mutaciones autenticadas) ──
+app.use(require('./middlewares/auditoria.middleware'));
+
 // ── Rutas ─────────────────────────────────────────────────────
 app.use('/api/auth',       require('./routes/auth.routes'));
 app.use('/api/sucursales', require('./routes/sucursal.routes'));
@@ -43,6 +46,7 @@ app.use('/api/lealtad',     require('./routes/lealtad.routes'));
 app.use('/api/reportes',    require('./routes/reporte.routes'));
 app.use('/api/retencion',   require('./routes/retencion.routes'));
 app.use('/api/platform',    require('./routes/platform.routes'));
+app.use('/api/dashboard',   require('./routes/dashboard.routes'));
 
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

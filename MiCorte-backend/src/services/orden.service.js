@@ -193,8 +193,21 @@ async function cambiarEstado(id, empresa_id, nuevoEstado) {
 }
 
 async function _acumularPuntosOrden(orden) {
-  const puntos = Math.floor(orden.total * PUNTOS_POR_PESO);
-  if (puntos <= 0) return;
+  const basePoints = Math.floor(orden.total * PUNTOS_POR_PESO);
+  if (basePoints <= 0) return;
+
+  const promocionRepo = require('../repositories/promocion.repository');
+  const cliente = await clienteRepo.findById(orden.cliente_id, orden.empresa_id);
+  const esEspecial = await promocionRepo.hayPromoEspecial(
+    orden.empresa_id,
+    cliente ? cliente.fecha_nacimiento : null,
+    orden.created_at
+  );
+
+  const puntos = esEspecial ? basePoints * 2 : basePoints;
+  const desc = esEspecial
+    ? `Compra entregada (x2 puntos promo) — Orden ${orden.id.slice(0, 8)}`
+    : `Compra entregada — Orden ${orden.id.slice(0, 8)}`;
 
   await lealtadRepo.registrarMovimiento({
     empresa_id:  orden.empresa_id,
@@ -203,7 +216,7 @@ async function _acumularPuntosOrden(orden) {
     puntos,
     origen_tipo: 'orden',
     origen_id:   orden.id,
-    descripcion: `Compra entregada — Orden ${orden.id.slice(0, 8)}`
+    descripcion: desc
   });
   await lealtadRepo.actualizarPuntos(orden.cliente_id, orden.empresa_id, puntos);
 }

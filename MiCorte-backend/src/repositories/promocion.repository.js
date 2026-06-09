@@ -183,4 +183,36 @@ async function findAplicable(empresa_id, servicio_id, cliente_fecha_nacimiento, 
   return rows[0] || null;
 }
 
-module.exports = { findAll, findById, create, update, softDelete, findAplicable };
+// Devuelve true si hay una promo de cumpleanos o fecha_especial activa para el cliente en la fecha.
+// Usada en acumulacion de puntos para aplicar el multiplicador x2.
+async function hayPromoEspecial(empresa_id, cliente_fecha_nacimiento, fecha) {
+  const hoy = fecha ? new Date(fecha) : new Date();
+
+  if (cliente_fecha_nacimiento) {
+    const fn = new Date(cliente_fecha_nacimiento);
+    if (fn.getMonth() === hoy.getMonth() && fn.getDate() === hoy.getDate()) {
+      const [rows] = await db.execute(
+        `SELECT id FROM promociones
+         WHERE empresa_id = ? AND tipo = 'cumpleanos'
+           AND activo = 1 AND deleted_at IS NULL
+         LIMIT 1`,
+        [empresa_id]
+      );
+      if (rows.length > 0) return true;
+    }
+  }
+
+  const fechaStr = hoy.toISOString().slice(0, 10);
+  const [rows] = await db.execute(
+    `SELECT id FROM promociones
+     WHERE empresa_id = ? AND tipo = 'fecha_especial'
+       AND activo = 1 AND deleted_at IS NULL
+       AND (fecha_inicio IS NULL OR fecha_inicio <= ?)
+       AND (fecha_fin   IS NULL OR fecha_fin   >= ?)
+     LIMIT 1`,
+    [empresa_id, fechaStr, fechaStr]
+  );
+  return rows.length > 0;
+}
+
+module.exports = { findAll, findById, create, update, softDelete, findAplicable, hayPromoEspecial };

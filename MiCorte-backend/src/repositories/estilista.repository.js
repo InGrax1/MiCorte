@@ -6,7 +6,23 @@ async function findAll(empresa_id, sucursal_id) {
     SELECT e.id, e.empresa_id, e.sucursal_id, e.usuario_id, e.nombre,
            e.especialidades, e.bio, e.foto_url, e.activo,
            e.created_at, e.updated_at,
-           s.nombre AS sucursal_nombre
+           s.nombre AS sucursal_nombre,
+           ROUND((
+             SELECT AVG(r.rating)
+             FROM resenas r
+             WHERE r.estilista_id = e.id
+               AND r.visible = 1
+               AND r.rating IS NOT NULL
+               AND r.deleted_at IS NULL
+           ), 1) AS rating_promedio,
+           (
+             SELECT COUNT(*)
+             FROM resenas r
+             WHERE r.estilista_id = e.id
+               AND r.visible = 1
+               AND r.rating IS NOT NULL
+               AND r.deleted_at IS NULL
+           ) AS total_resenas
     FROM estilistas e
     JOIN sucursales s ON s.id = e.sucursal_id
     WHERE e.empresa_id = ? AND e.deleted_at IS NULL`;
@@ -28,7 +44,23 @@ async function findById(id, empresa_id) {
     `SELECT e.id, e.empresa_id, e.sucursal_id, e.usuario_id, e.nombre,
             e.especialidades, e.bio, e.foto_url, e.activo,
             e.created_at, e.updated_at,
-            s.nombre AS sucursal_nombre
+            s.nombre AS sucursal_nombre,
+            ROUND((
+              SELECT AVG(r.rating)
+              FROM resenas r
+              WHERE r.estilista_id = e.id
+                AND r.visible = 1
+                AND r.rating IS NOT NULL
+                AND r.deleted_at IS NULL
+            ), 1) AS rating_promedio,
+            (
+              SELECT COUNT(*)
+              FROM resenas r
+              WHERE r.estilista_id = e.id
+                AND r.visible = 1
+                AND r.rating IS NOT NULL
+                AND r.deleted_at IS NULL
+            ) AS total_resenas
      FROM estilistas e
      JOIN sucursales s ON s.id = e.sucursal_id
      WHERE e.id = ? AND e.empresa_id = ? AND e.deleted_at IS NULL`,
@@ -153,6 +185,52 @@ async function softDelete(id, empresa_id) {
   );
 }
 
+// Devuelve el primer estilista activo de la sucursal que tenga disponibilidad
+// para el slot solicitado (sin solapamiento de citas ni bloqueos).
+async function findDisponibleParaSlot(empresa_id, sucursal_id, fecha_hora, duracion_min) {
+  const dt = new Date(fecha_hora);
+  const dia_semana = (dt.getUTCDay() + 6) % 7; // 0=Lun, 6=Dom
+  const fechaMysql = dt.toISOString().slice(0, 19).replace('T', ' ');
+
+  const [rows] = await db.execute(
+    `SELECT e.id, e.nombre
+     FROM estilistas e
+     JOIN horarios_estilistas he ON he.estilista_id = e.id
+     WHERE e.empresa_id = ?
+       AND e.sucursal_id = ?
+       AND e.activo = 1
+       AND e.deleted_at IS NULL
+       AND he.dia_semana = ?
+       AND TIME(?) >= he.hora_inicio
+       AND ADDTIME(TIME(?), SEC_TO_TIME(? * 60)) <= he.hora_fin
+       AND NOT EXISTS (
+         SELECT 1 FROM citas c
+         WHERE c.estilista_id = e.id
+           AND c.empresa_id = ?
+           AND c.deleted_at IS NULL
+           AND c.estado IN ('confirmada','en_proceso')
+           AND c.fecha_hora < DATE_ADD(?, INTERVAL ? MINUTE)
+           AND DATE_ADD(c.fecha_hora, INTERVAL c.duracion_min MINUTE) > ?
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM bloqueos_agenda ba
+         WHERE (ba.estilista_id = e.id
+                OR (ba.estilista_id IS NULL AND ba.sucursal_id = e.sucursal_id))
+           AND ba.deleted_at IS NULL
+           AND ba.fecha_inicio < DATE_ADD(?, INTERVAL ? MINUTE)
+           AND ba.fecha_fin > ?
+       )
+     LIMIT 1`,
+    [
+      empresa_id, sucursal_id, dia_semana,
+      fechaMysql, fechaMysql, duracion_min,
+      empresa_id, fechaMysql, duracion_min, fechaMysql,
+      fechaMysql, duracion_min, fechaMysql
+    ]
+  );
+  return rows[0] || null;
+}
+
 function parseEspecialidades(row) {
   if (row.especialidades) {
     try { row.especialidades = JSON.parse(row.especialidades); }
@@ -163,5 +241,6 @@ function parseEspecialidades(row) {
 
 module.exports = {
   findAll, findById, findByUsuarioId, findHorarios,
-  createWithUsuario, update, replaceHorarios, softDelete
+  createWithUsuario, update, replaceHorarios, softDelete,
+  findDisponibleParaSlot
 };

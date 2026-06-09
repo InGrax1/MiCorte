@@ -49,7 +49,12 @@ async function login(req, res, next) {
     }
 
     // 2. Llamar al service
-    const result = await authService.login(value.email, value.password);
+    const forwarded = req.headers['x-forwarded-for'];
+    const ip = forwarded ? forwarded.split(',')[0].trim() : (req.socket?.remoteAddress || req.ip);
+    const result = await authService.login(value.email, value.password, {
+      ip,
+      user_agent: req.headers['user-agent'] || null
+    });
 
     // 3. Responder
     return ok(res, result, 'Login exitoso');

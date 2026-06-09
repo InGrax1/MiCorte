@@ -8,6 +8,7 @@ const jwt            = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const db             = require('../config/db');
 const usuarioRepo    = require('../repositories/usuario.repository');
+const logRepo        = require('../repositories/log.repository');
 const { AppError }   = require('../utils/errors');
 
 // Convierte el nombre del negocio en un slug URL-friendly
@@ -56,13 +57,22 @@ function signRefreshToken(payload) {
 
 // ── Login ─────────────────────────────────────────────────────
 
-async function login(email, password) {
+async function login(email, password, meta = {}) {
+  const { ip = null, user_agent = null } = meta;
+
   // 1. Buscar usuario por email
   const usuario = await usuarioRepo.findByEmail(email);
 
   // Mismo mensaje para email incorrecto y contraseña incorrecta
   // (evita enumerar usuarios válidos por el mensaje de error)
   if (!usuario) {
+    logRepo.registrar({
+      empresa_id: null, usuario_id: null,
+      entity_type: 'auth', entity_id: 'N/A',
+      accion: 'LOGIN',
+      snapshot_after: { email, resultado: 'usuario_no_encontrado' },
+      ip, user_agent
+    }).catch(() => {});
     throw new AppError('Email o contraseña incorrectos', 401);
   }
 
@@ -73,11 +83,27 @@ async function login(email, password) {
   // 2. Verificar contraseña
   const passwordOk = await bcrypt.compare(password, usuario.password_hash);
   if (!passwordOk) {
+    logRepo.registrar({
+      empresa_id: usuario.empresa_id, usuario_id: usuario.id,
+      entity_type: 'auth', entity_id: usuario.id,
+      accion: 'LOGIN',
+      snapshot_after: { email, resultado: 'password_incorrecto' },
+      ip, user_agent
+    }).catch(() => {});
     throw new AppError('Email o contraseña incorrectos', 401);
   }
 
   // 3. Actualizar ultimo_login (no bloqueante: no esperamos error aquí)
   usuarioRepo.updateLastLogin(usuario.id).catch(() => {});
+
+  // Log de acceso exitoso (non-blocking)
+  logRepo.registrar({
+    empresa_id: usuario.empresa_id, usuario_id: usuario.id,
+    entity_type: 'auth', entity_id: usuario.id,
+    accion: 'LOGIN',
+    snapshot_after: { email, resultado: 'ok' },
+    ip, user_agent
+  }).catch(() => {});
 
   // 4. Generar tokens
   const payload      = buildPayload(usuario);

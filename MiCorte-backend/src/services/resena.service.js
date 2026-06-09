@@ -4,6 +4,32 @@ const { sendResena }      = require('../utils/email');
 const { sendResenaSMS }   = require('../utils/sms');
 const { AppError }        = require('../utils/errors');
 
+// Normaliza texto para comparación: minúsculas, sin acentos
+function normalizar(texto) {
+  return texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}
+
+// Lista de palabras bloqueadas configurable via PALABRAS_BLOQUEADAS en .env
+// Formato: palabras separadas por coma, ej: "palabra1,palabra2,palabra3"
+function getPalabrasBloqueadas() {
+  const raw = process.env.PALABRAS_BLOQUEADAS || '';
+  return raw.split(',').map(p => normalizar(p.trim())).filter(Boolean);
+}
+
+function validarLenguaje(comentario) {
+  if (!comentario) return;
+  const palabrasBloqueadas = getPalabrasBloqueadas();
+  if (palabrasBloqueadas.length === 0) return;
+  const texto = normalizar(comentario);
+  const encontrada = palabrasBloqueadas.find(p => texto.includes(p));
+  if (encontrada) {
+    throw new AppError('El comentario contiene lenguaje inapropiado', 422);
+  }
+}
+
 async function listar(empresa_id, filtros) {
   return resenaRepo.findAll(empresa_id, filtros);
 }
@@ -28,6 +54,7 @@ async function responder(token, rating, comentario) {
     throw new AppError('Esta reseña ya fue respondida', 409);
   }
 
+  validarLenguaje(comentario);
   await resenaRepo.submitResena(token, rating, comentario);
   return resenaRepo.findByToken(token);
 }

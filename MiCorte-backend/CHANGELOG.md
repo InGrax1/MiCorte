@@ -429,3 +429,36 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Promociones soportan 4 tipos: cumpleanos (recurrente por mes/dia), fecha_especial, aniversario y manual. El descuento puede ser porcentaje o monto_fijo y puede limitarse a servicios especificos.
 - Rate limiting en POST /api/auth/login: maximo 5 intentos por IP cada 15 minutos.
 - Al confirmar el pago de una cita (efectivo o MercadoPago webhook), se envia automaticamente un correo de confirmacion con QR al cliente. El QR codifica el cita_id para que el quiosco lo escanee y haga check-in sin escritura manual.
+
+---
+
+## [Fase 4 — Parte 7] — Gaps del Spec (continuación) — 2026-06-09
+
+### Gap 1: Rating promedio en estilistas
+
+- ADDED Los campos `rating_promedio` (DECIMAL redondeado a 1 decimal) y `total_resenas` (INTEGER) ahora se devuelven en todos los endpoints de estilistas (listado y detalle). El valor se calcula desde las reseñas visibles con calificación registrada. Si el estilista no tiene reseñas, ambos campos retornan null/0.
+
+### Gap 2: Doble de puntos en promociones especiales
+
+- ADDED Al completar una cita, si existe una promoción activa de tipo cumpleaños o fecha especial aplicable al cliente y servicio, los puntos acumulados se duplican automáticamente. La descripción del movimiento indica el multiplicador aplicado.
+- ADDED Al entregar una orden, se verifica si hay una promoción activa de cumpleaños (mes/dia del cliente) o fecha especial en la empresa. Si es así, los puntos se duplican. La lógica es non-blocking y no afecta el flujo de la orden.
+
+### Gap 3: Filtro de lenguaje inapropiado en reseñas
+
+- ADDED Variable de entorno `PALABRAS_BLOQUEADAS` (lista separada por comas). Cuando el cliente envía su comentario de reseña, el sistema valida que no contenga ninguna palabra de la lista. La comparación normaliza acentos y mayúsculas. Si está vacía, no se aplica filtro.
+- ADDED Si el comentario contiene una palabra bloqueada, la reseña es rechazada con error 422 antes de guardarse.
+
+### Gap 4: Dashboard de KPIs del tenant
+
+- ADDED Nuevo endpoint `GET /api/dashboard` accesible por `super_admin` y `admin_sucursal`. Acepta `?sucursal_id=` para filtrar por sucursal. Devuelve en una sola llamada: citas del día (total, completadas, pendientes), ingresos por citas y por tienda, productos vendidos, estilista con más citas del día y nuevos clientes en el mes.
+
+### Gap 5: Asignación aleatoria de estilista
+
+- CHANGED El campo `estilista_id` en `POST /api/citas` ahora es opcional. Si se omite, el sistema asigna automáticamente el primer estilista activo de la sucursal que tenga horario configurado para ese día y no tenga conflicto de cita ni bloqueo de agenda en el slot solicitado.
+- ADDED Si ningún estilista está disponible para el horario pedido, la API retorna 422 con mensaje descriptivo.
+
+### Gap 6: Logs del sistema (auditoría inmutable)
+
+- ADDED Tabla `logs_sistema` ahora recibe escrituras. Middleware de auditoría non-blocking registra todas las mutaciones exitosas (POST, PUT, PATCH, DELETE) de usuarios autenticados, capturando IP, user agent, tipo de entidad y acción.
+- ADDED Los intentos de login (exitosos y fallidos con contraseña incorrecta) se registran en `logs_sistema` con IP, user agent y resultado. Permite detectar accesos sospechosos y ataques de fuerza bruta.
+- ADDED El log es completamente inmutable: no tiene soft-delete ni ningún endpoint de eliminación.

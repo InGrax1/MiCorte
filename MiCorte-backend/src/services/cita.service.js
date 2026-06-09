@@ -109,17 +109,26 @@ async function crear(empresa_id, data) {
   const cliente   = await clienteRepo.findById(data.cliente_id, empresa_id);
   if (!cliente)   throw new AppError('Cliente no encontrado', 404);
 
-  const estilista = await estilistaRepo.findById(data.estilista_id, empresa_id);
-  if (!estilista) throw new AppError('Estilista no encontrado', 404);
-
-  if (estilista.sucursal_id !== data.sucursal_id) {
-    throw new AppError('El estilista no pertenece a la sucursal indicada', 422);
-  }
-
   const servicio = await servicioRepo.findById(data.servicio_id, empresa_id);
   if (!servicio) throw new AppError('Servicio no encontrado', 404);
 
-  // 2. Resolve precio_final from servicios_sucursales
+  // 2. Resolver estilista: específico o asignación automática al primero disponible
+  let estilista_id = data.estilista_id || null;
+  if (estilista_id) {
+    const estilista = await estilistaRepo.findById(estilista_id, empresa_id);
+    if (!estilista) throw new AppError('Estilista no encontrado', 404);
+    if (estilista.sucursal_id !== data.sucursal_id) {
+      throw new AppError('El estilista no pertenece a la sucursal indicada', 422);
+    }
+  } else {
+    const libre = await estilistaRepo.findDisponibleParaSlot(
+      empresa_id, data.sucursal_id, data.fecha_hora, servicio.duracion_min
+    );
+    if (!libre) throw new AppError('No hay estilistas disponibles para ese horario', 422);
+    estilista_id = libre.id;
+  }
+
+  // 4. Resolve precio_final from servicios_sucursales
   const sucursalEntry = (servicio.sucursales || []).find(s => s.sucursal_id === data.sucursal_id);
   let precio_final  = sucursalEntry && sucursalEntry.precio != null
     ? parseFloat(sucursalEntry.precio)
@@ -156,20 +165,23 @@ async function crear(empresa_id, data) {
     throw new AppError('La fecha de la cita debe ser en el futuro', 422);
   }
 
-  // 4. Overlap check
-  const solapadas = await citaRepo.findOverlapping(
-    data.estilista_id, empresa_id, data.fecha_hora, servicio.duracion_min
-  );
-  if (solapadas.length > 0) {
-    throw new AppError('El estilista ya tiene una cita en ese horario', 409);
+  // 5. Overlap check (solo si el estilista fue asignado explícitamente; la asignación
+  //    automática ya garantiza disponibilidad mediante findDisponibleParaSlot)
+  if (data.estilista_id) {
+    const solapadas = await citaRepo.findOverlapping(
+      estilista_id, empresa_id, data.fecha_hora, servicio.duracion_min
+    );
+    if (solapadas.length > 0) {
+      throw new AppError('El estilista ya tiene una cita en ese horario', 409);
+    }
   }
 
-  // 5. Create
+  // 6. Create
   const cita = await citaRepo.create({
     empresa_id,
     sucursal_id:  data.sucursal_id,
     cliente_id:   data.cliente_id,
-    estilista_id: data.estilista_id,
+    estilista_id,
     servicio_id:  data.servicio_id,
     fecha_hora:   data.fecha_hora,
     duracion_min: servicio.duracion_min,
@@ -239,19 +251,32 @@ async function cambiarEstado(id, empresa_id, nuevoEstado, userRoles) {
 
     const lealtadRepo  = require('../repositories/lealtad.repository');
     const PUNTOS_POR_PESO = parseFloat(process.env.PUNTOS_POR_PESO || '0.1');
-    const puntos = Math.floor(parseFloat(citaActualizada.precio_final) * PUNTOS_POR_PESO);
-    if (puntos > 0) {
-      lealtadRepo.registrarMovimiento({
-        empresa_id:  citaActualizada.empresa_id,
-        cliente_id:  citaActualizada.cliente_id,
-        tipo:        'acumulacion',
-        puntos,
-        origen_tipo: 'cita',
-        origen_id:   citaActualizada.id,
-        descripcion: `Cita completada — ${citaActualizada.servicio_nombre}`
-      }).then(() => lealtadRepo.actualizarPuntos(
-        citaActualizada.cliente_id, citaActualizada.empresa_id, puntos
-      )).catch(err => console.error('[LEALTAD] Error acumulando puntos por cita:', err.message));
+    const basePoints  = Math.floor(parseFloat(citaActualizada.precio_final) * PUNTOS_POR_PESO);
+    if (basePoints > 0) {
+      // Doble de puntos si hay promo activa de cumpleanos o fecha_especial
+      promocionRepo.findAplicable(
+        citaActualizada.empresa_id,
+        citaActualizada.servicio_id,
+        citaActualizada.cliente_fecha_nacimiento,
+        citaActualizada.fecha_hora
+      ).then(promo => {
+        const multiplicador = (promo && ['cumpleanos', 'fecha_especial'].includes(promo.tipo)) ? 2 : 1;
+        const puntos = basePoints * multiplicador;
+        const desc = multiplicador === 2
+          ? `Cita completada (x2 puntos promo) — ${citaActualizada.servicio_nombre}`
+          : `Cita completada — ${citaActualizada.servicio_nombre}`;
+        return lealtadRepo.registrarMovimiento({
+          empresa_id:  citaActualizada.empresa_id,
+          cliente_id:  citaActualizada.cliente_id,
+          tipo:        'acumulacion',
+          puntos,
+          origen_tipo: 'cita',
+          origen_id:   citaActualizada.id,
+          descripcion: desc
+        }).then(() => lealtadRepo.actualizarPuntos(
+          citaActualizada.cliente_id, citaActualizada.empresa_id, puntos
+        ));
+      }).catch(err => console.error('[LEALTAD] Error acumulando puntos por cita:', err.message));
     }
   }
 
