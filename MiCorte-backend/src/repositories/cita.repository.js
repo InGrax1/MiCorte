@@ -83,7 +83,7 @@ async function findOverlapping(estilista_id, empresa_id, fecha_hora, duracion_mi
      WHERE estilista_id = ?
        AND empresa_id   = ?
        AND deleted_at   IS NULL
-       AND estado IN ('confirmada', 'en_proceso')
+       AND estado IN ('pendiente_pago', 'confirmada', 'en_proceso')
        AND fecha_hora < DATE_ADD(?, INTERVAL ? MINUTE)
        AND DATE_ADD(fecha_hora, INTERVAL duracion_min MINUTE) > ?`,
     [estilista_id, empresa_id, fh, duracion_min, fh]
@@ -123,7 +123,7 @@ async function getCitasDelDia(estilista_id, empresa_id, fechaInicioDia, fechaIni
      WHERE estilista_id = ?
        AND empresa_id   = ?
        AND deleted_at   IS NULL
-       AND estado IN ('confirmada', 'en_proceso')
+       AND estado IN ('pendiente_pago', 'confirmada', 'en_proceso')
        AND fecha_hora >= ?
        AND fecha_hora  < ?`,
     [estilista_id, empresa_id, fechaInicioDia, fechaInicioDiaSiguiente]

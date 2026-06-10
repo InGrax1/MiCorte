@@ -12,7 +12,8 @@ const MXN_POR_PUNTO = () => parseFloat(process.env.PUNTOS_CAMBIO_MXN || '0.20');
 // { estadoActual: { estadoDestino: [rolesPermitidos] } }
 const TRANSITIONS = {
   pendiente_pago: {
-    confirmada: ['super_admin', 'admin_sucursal']
+    confirmada: ['super_admin', 'admin_sucursal'],
+    cancelada:  ['admin_sucursal', 'super_admin']
   },
   confirmada: {
     en_proceso: ['estilista', 'admin_sucursal', 'super_admin'],

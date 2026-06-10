@@ -47,6 +47,9 @@ app.use('/api/reportes',    require('./routes/reporte.routes'));
 app.use('/api/retencion',   require('./routes/retencion.routes'));
 app.use('/api/platform',    require('./routes/platform.routes'));
 app.use('/api/dashboard',   require('./routes/dashboard.routes'));
+app.use('/api/reserva',     require('./routes/reserva.routes'));
+app.use('/api/portal',      require('./routes/portal.routes'));
+app.use('/api/tienda',      require('./routes/tienda.routes'));
 
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

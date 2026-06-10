@@ -2,8 +2,8 @@ const express             = require('express');
 const router              = express.Router();
 const dashboardController = require('../controllers/dashboard.controller');
 const authMiddleware      = require('../middlewares/auth.middleware');
-const tenantGuard         = require('../middlewares/tenant.guard');
-const { checkRoles }      = require('../middlewares/role.middleware');
+const tenantGuard         = require('../middlewares/tenantGuard.middleware');
+const { checkRoles }      = require('../middlewares/rbac.middleware');
 
 router.use(authMiddleware, tenantGuard);
 

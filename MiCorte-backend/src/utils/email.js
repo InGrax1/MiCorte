@@ -164,4 +164,33 @@ async function sendStockAlerta({ admin_email, producto_nombre, stock_actual, sto
   });
 }
 
-module.exports = { sendConfirmacion, sendRecordatorio, sendResena, sendStockAlerta };
+async function sendOtpPortal({ email, nombre, codigo, sucursal_nombre }) {
+  await transporter.sendMail({
+    from:    `"MiCorte" <${process.env.SMTP_USER}>`,
+    to:      email,
+    subject: `Tu codigo de acceso — ${sucursal_nombre}`,
+    text: [
+      `Hola ${nombre},`,
+      '',
+      `Tu codigo de acceso al portal es: ${codigo}`,
+      '',
+      'Expira en 10 minutos. No lo compartas con nadie.',
+      '',
+      '— Equipo MiCorte'
+    ].join('\n'),
+    html: `
+      <p>Hola <strong>${nombre}</strong>,</p>
+      <p>Usa este codigo para acceder a tu cuenta en <strong>${sucursal_nombre}</strong>:</p>
+      <div style="margin:24px 0;text-align:center;">
+        <span style="display:inline-block;font-size:36px;font-weight:800;letter-spacing:10px;
+                     color:#1A1713;background:#FEF9C3;padding:16px 28px;border-radius:12px;">
+          ${codigo}
+        </span>
+      </div>
+      <p style="color:#888;font-size:13px;">Expira en 10 minutos. No lo compartas con nadie.</p>
+      <p style="color:#888;font-size:12px;">— Equipo MiCorte</p>
+    `
+  });
+}
+
+module.exports = { sendConfirmacion, sendRecordatorio, sendResena, sendStockAlerta, sendOtpPortal };

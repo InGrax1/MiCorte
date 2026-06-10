@@ -55,7 +55,7 @@ async function getKpis(empresa_id, sucursal_id) {
     `SELECT COALESCE(SUM(oi.cantidad), 0) AS total_productos,
             COALESCE(SUM(o.total), 0)     AS ingresos_tienda
      FROM ordenes o
-     JOIN ordenes_items oi ON oi.orden_id = o.id
+     JOIN orden_items oi ON oi.orden_id = o.id
      WHERE o.empresa_id = ?
        AND DATE(o.created_at) = CURDATE()
        AND o.estado IN ('procesando','enviado','entregado')
