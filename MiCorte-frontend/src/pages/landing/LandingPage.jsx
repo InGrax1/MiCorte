@@ -1,5 +1,14 @@
+import { useEffect, useRef, lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
 import Navbar from '@/components/layout/Navbar'
+
+// Three.js se carga en su propio chunk — solo cuando se visita la landing
+const PaintCanvas = lazy(() => import('@/components/three/PaintCanvas'))
+
+gsap.registerPlugin(ScrollTrigger)
 
 // ── Datos configurables del salón ──────────────────────────────
 const SALON = {
@@ -32,6 +41,22 @@ const EQUIPO = [
   { nombre: 'Luis Herrera',    rol: 'Estilista junior',     especialidades: ['Corte', 'Estilizado'],     rating: 4.7, resenas: 41,  inicial: 'LH', color: '#7C6122' },
 ]
 
+const STATS = [
+  { value: 12000, suffix: '+', decimals: 0, label: 'Cortes realizados' },
+  { value: 4.8,   suffix: '',  decimals: 1, label: 'Valoracion promedio' },
+  { value: 350,   suffix: '+', decimals: 0, label: 'Resenas verificadas' },
+  { value: 10,    suffix: '',  decimals: 0, label: 'Anos de experiencia' },
+]
+
+const MARQUEE_ITEMS = ['Corte', 'Barba', 'Color', 'Mechas', 'Tratamientos', 'Peinado', 'Estilizado']
+
+const GALERIA = [
+  { src: '/img/landing/barberia-interior.jpg', alt: 'Interior de la barberia con sillones clasicos', label: 'Nuestro espacio',     span: 'sm:col-span-2' },
+  { src: '/img/landing/corte-maquina.jpg',     alt: 'Barbero estilizando a un cliente',             label: 'Acabado profesional', span: '' },
+  { src: '/img/landing/navaja-barba.jpg',      alt: 'Perfilado de barba con navaja',                label: 'Detalle a navaja',    span: '' },
+  { src: '/img/landing/salon-espejos.jpg',     alt: 'Area de estilismo y color',                    label: 'Area de color',       span: 'sm:col-span-2' },
+]
+
 // ── Helpers ────────────────────────────────────────────────────
 function Stars({ value }) {
   return (
@@ -45,169 +70,229 @@ function Stars({ value }) {
   )
 }
 
+function ArrowIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+    </svg>
+  )
+}
+
 // ── Hero ───────────────────────────────────────────────────────
 function Hero() {
   return (
-    <section
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      style={{ background: '#0F0E0B' }}
-    >
-      {/* Fondo decorativo */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(201,168,76,0.06) 0%, transparent 70%)',
-        }}
-      />
-      {/* Lineas decorativas */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ opacity: 0.04 }}>
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute top-0 bottom-0"
-            style={{
-              left: `${i * 14.28}%`,
-              width: '1px',
-              background: 'linear-gradient(180deg, transparent 0%, #C9A84C 50%, transparent 100%)',
-            }}
-          />
-        ))}
-      </div>
+    <section className="hero-section relative overflow-hidden" style={{ background: '#0F0E0B', minHeight: '100svh' }}>
+      {/* Fondo Three.js — pintura dorada reactiva al cursor */}
+      <Suspense fallback={null}>
+        <PaintCanvas className="absolute inset-0" style={{ width: '100%', height: '100%' }} />
+      </Suspense>
 
-      <div className="relative max-w-4xl mx-auto px-6 pt-24 pb-20 text-center">
-        {/* Badge */}
-        <div
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-8"
-          style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.2)', color: '#C9A84C' }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#C9A84C' }} />
-          Salón profesional · CDMX
+      {/* Degradado para legibilidad y fusion con la siguiente seccion */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: 'linear-gradient(180deg, rgba(15,14,11,0.55) 0%, rgba(15,14,11,0.15) 35%, rgba(15,14,11,0.25) 70%, #0F0E0B 100%)' }} />
+
+      <div className="hero-content relative max-w-6xl mx-auto px-6 flex flex-col justify-center"
+        style={{ minHeight: '100svh', paddingTop: '96px', paddingBottom: '120px' }}>
+
+        {/* Fotos flotantes — solo desktop */}
+        <div className="hidden lg:block absolute top-1/2 -translate-y-1/2 pointer-events-none" style={{ right: '2%' }}>
+          <div className="hero-img rounded-2xl overflow-hidden mb-7"
+            style={{ width: '320px', height: '220px', transform: 'rotate(3deg)', border: '1px solid rgba(201,168,76,0.3)', boxShadow: '0 30px 70px rgba(0,0,0,0.55)' }}>
+            <img src="/img/landing/barberia-interior.jpg" alt="Interior de la barberia" className="w-full h-full object-cover" decoding="async" />
+          </div>
+          <div className="hero-img rounded-2xl overflow-hidden ml-20"
+            style={{ width: '270px', height: '185px', transform: 'rotate(-4deg)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 30px 70px rgba(0,0,0,0.55)' }}>
+            <img src="/img/landing/barba-perfilado.jpg" alt="Barbero perfilando una barba" className="w-full h-full object-cover" decoding="async" />
+          </div>
         </div>
 
-        {/* Headline */}
-        <h1
-          className="text-6xl md:text-7xl font-bold mb-6 leading-[1.05]"
-          style={{ letterSpacing: '-0.03em' }}
-        >
-          <span
-            style={{
-              background: 'linear-gradient(135deg, #FACC15 0%, #C9A84C 40%, #B8973D 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            {SALON.nombre}
+        {/* Chip */}
+        <div className="hero-chip inline-flex items-center gap-2 self-start px-4 py-1.5 rounded-full mb-7"
+          style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)', backdropFilter: 'blur(8px)' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+            <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+            <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+            <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+          </svg>
+          <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#C9A84C' }}>
+            Barberia premium · CDMX
           </span>
-          <br />
-          <span className="text-white">{SALON.eslogan}</span>
+        </div>
+
+        {/* Titulo gigante con reveal por linea */}
+        <h1 className="font-extrabold leading-[0.95] mb-7" style={{ letterSpacing: '-0.03em', fontSize: 'clamp(3rem, 9.5vw, 7.5rem)' }}>
+          <span className="hero-line block overflow-hidden">
+            <span className="inline-block text-white">El arte</span>
+          </span>
+          <span className="hero-line block overflow-hidden">
+            <span className="inline-block" style={{ color: '#C9A84C' }}>del estilo,</span>
+          </span>
+          <span className="hero-line block overflow-hidden">
+            <span className="inline-block text-white">a tu medida.</span>
+          </span>
         </h1>
 
-        <p className="text-lg mb-12 max-w-lg mx-auto" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>
-          {SALON.tagline}
+        <p className="hero-sub max-w-md text-base sm:text-lg mb-9" style={{ color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
+          {SALON.tagline} Corte, barba y color con los mejores estilistas de la ciudad.
         </p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            to="/reservar"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl no-underline"
-            style={{ background: 'linear-gradient(135deg, #C9A84C 0%, #B8973D 100%)', color: '#1A1713' }}
-          >
-            Ver servicios y reservar
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-            </svg>
+        <div className="hero-cta flex flex-wrap items-center gap-3 mb-12">
+          <Link to="/reservar"
+            className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-bold rounded-xl no-underline transition-transform hover:scale-[1.03] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #C9A84C 0%, #B8973D 100%)', color: '#1A1713', boxShadow: '0 8px 32px rgba(201,168,76,0.35)' }}>
+            Reservar cita
+            <ArrowIcon />
           </Link>
-          <a
-            href="#equipo"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl no-underline transition-colors"
-            style={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.12)' }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
-          >
-            Conoce al equipo
+          <a href="#servicios"
+            className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-semibold rounded-xl no-underline transition-colors"
+            style={{ color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(201,168,76,0.6)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'}>
+            Ver servicios
           </a>
         </div>
 
-        {/* Scroll hint */}
-        <div className="mt-20 flex flex-col items-center gap-2" style={{ color: 'rgba(255,255,255,0.2)' }}>
-          <span className="text-xs tracking-widest uppercase">Desliza</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m6 9 6 6 6-6"/>
-          </svg>
+        {/* Tarjetas flotantes — estilo referencia */}
+        <div className="flex flex-wrap gap-3">
+          <div className="hero-float flex items-center gap-3 px-4 py-3 rounded-2xl"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)' }}>
+            <span className="text-2xl font-extrabold text-white">4.8</span>
+            <div>
+              <Stars value={4.8} />
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>350+ resenas</p>
+            </div>
+          </div>
+          <div className="hero-float flex items-center gap-2.5 px-4 py-3 rounded-2xl"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)' }}>
+            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#4ADE80' }} />
+            <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>Reserva online en menos de 60 segundos</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Indicador de scroll */}
+      <div className="hero-float absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none">
+        <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.3)' }}>Scroll</span>
+        <div className="w-px h-10 overflow-hidden" style={{ background: 'rgba(255,255,255,0.12)' }}>
+          <div className="w-px h-4 scroll-hint-dot" style={{ background: '#C9A84C' }} />
         </div>
       </div>
     </section>
   )
 }
 
-// ── Servicios ──────────────────────────────────────────────────
+// ── Marquee ────────────────────────────────────────────────────
+function Marquee() {
+  const row = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS]
+  return (
+    <div className="overflow-hidden py-5 select-none" style={{ background: '#C9A84C' }} aria-hidden="true">
+      <div className="marquee-track flex items-center gap-10 whitespace-nowrap w-max">
+        {row.map((item, i) => (
+          <span key={i} className="flex items-center gap-10">
+            <span className="text-xl sm:text-2xl font-extrabold uppercase tracking-tight" style={{ color: '#1A1713' }}>{item}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#1A1713"><circle cx="12" cy="12" r="4"/></svg>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Stats ──────────────────────────────────────────────────────
+function StatsBar() {
+  return (
+    <section style={{ background: '#FAFAF7', borderBottom: '1px solid #EFEBE2' }}>
+      <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20 grid grid-cols-2 lg:grid-cols-4 gap-10">
+        {STATS.map(s => (
+          <div key={s.label} className="reveal text-center lg:text-left">
+            <p className="text-4xl sm:text-5xl font-extrabold mb-2" style={{ color: '#0F0E0B', letterSpacing: '-0.03em' }}>
+              <span className="stat-num" data-value={s.value} data-decimals={s.decimals} data-suffix={s.suffix}>
+                {s.value.toLocaleString('es-MX', { minimumFractionDigits: s.decimals, maximumFractionDigits: s.decimals })}{s.suffix}
+              </span>
+            </p>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8C8274' }}>{s.label}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ── Servicios (bento grid) ─────────────────────────────────────
+function ServCard({ s, featured = false }) {
+  return (
+    <div
+      className={`serv-card group relative rounded-3xl overflow-hidden p-6 sm:p-7 flex flex-col cursor-pointer transition-shadow hover:shadow-xl ${featured ? 'lg:col-span-2 lg:row-span-2 justify-between' : ''}`}
+      style={{
+        background: featured ? '#0F0E0B' : '#FFFFFF',
+        border: featured ? '1px solid rgba(201,168,76,0.25)' : '1px solid #EFEBE2',
+        minHeight: featured ? '320px' : undefined,
+      }}>
+      {featured && (
+        <>
+          <img src="/img/landing/barber-corte.jpg" alt="" loading="lazy" decoding="async"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+          <div className="absolute inset-0"
+            style={{ background: 'linear-gradient(160deg, rgba(15,14,11,0.93) 0%, rgba(15,14,11,0.55) 55%, rgba(15,14,11,0.88) 100%)' }} />
+        </>
+      )}
+      <div className="relative">
+        <div className="flex items-start justify-between mb-4">
+          <span className="text-xs font-semibold px-3 py-1 rounded-full"
+            style={featured
+              ? { background: 'rgba(201,168,76,0.15)', color: '#C9A84C' }
+              : { background: '#F5F0E8', color: '#8C8274' }}>
+            {s.duracion}
+          </span>
+          <span className={`font-extrabold ${featured ? 'text-3xl' : 'text-xl'}`} style={{ color: '#C9A84C', letterSpacing: '-0.02em' }}>
+            {s.precio}
+          </span>
+        </div>
+        <h3 className={`font-bold mb-2 ${featured ? 'text-2xl sm:text-4xl' : 'text-lg'}`}
+          style={{ color: featured ? '#FFFFFF' : '#0F0E0B', letterSpacing: '-0.02em' }}>
+          {s.nombre}
+        </h3>
+        <p className={`leading-relaxed ${featured ? 'text-sm sm:text-base max-w-sm' : 'text-sm'}`}
+          style={{ color: featured ? 'rgba(255,255,255,0.5)' : '#8C8274' }}>
+          {s.descripcion}
+        </p>
+      </div>
+      <Link to="/reservar"
+        className="relative mt-6 inline-flex items-center gap-2 text-sm font-semibold no-underline w-fit transition-all group-hover:gap-3"
+        style={{ color: '#C9A84C' }}>
+        Reservar
+        <ArrowIcon size={13} />
+      </Link>
+    </div>
+  )
+}
+
 function Servicios() {
   return (
     <section id="servicios" style={{ background: '#FAFAF7' }}>
-      <div className="max-w-6xl mx-auto px-6 py-24">
-        <div className="mb-14">
-          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#C9A84C' }}>
-            Servicios
-          </p>
-          <h2
-            className="text-4xl font-bold text-warm-900"
-            style={{ letterSpacing: '-0.02em' }}
-          >
-            Lo que hacemos mejor
-          </h2>
+      <div className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
+        <div className="reveal flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-12">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#9A7C2E' }}>
+              Servicios
+            </p>
+            <h2 className="text-4xl sm:text-5xl font-extrabold" style={{ color: '#0F0E0B', letterSpacing: '-0.03em' }}>
+              Disenado para tu<br />mejor version
+            </h2>
+          </div>
+          <Link to="/reservar"
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl no-underline self-start sm:self-auto transition-transform hover:scale-[1.03]"
+            style={{ background: '#0F0E0B', color: '#C9A84C' }}>
+            Reservar ahora
+            <ArrowIcon size={13} />
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {SERVICIOS.map(s => (
-            <div
-              key={s.nombre}
-              className="bg-white rounded-2xl p-6 transition-all cursor-default"
-              style={{ border: '1px solid #EBE8E0' }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'rgba(201,168,76,0.4)'
-                e.currentTarget.style.boxShadow = '0 8px 32px rgba(201,168,76,0.08)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = '#EBE8E0'
-                e.currentTarget.style.boxShadow = 'none'
-              }}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-warm-900">{s.nombre}</h3>
-                <span
-                  className="text-sm font-bold ml-3 flex-shrink-0"
-                  style={{ color: '#C9A84C' }}
-                >
-                  {s.precio}
-                </span>
-              </div>
-              <p className="text-sm leading-relaxed mb-4" style={{ color: '#8C8274' }}>
-                {s.descripcion}
-              </p>
-              <div className="flex items-center justify-between">
-                <span
-                  className="inline-flex items-center gap-1.5 text-xs"
-                  style={{ color: '#B8B0A0' }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                  {s.duracion}
-                </span>
-                <Link
-                  to="/reservar"
-                  className="text-xs font-semibold no-underline transition-colors"
-                  style={{ color: '#C9A84C' }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#9A7C2E'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#C9A84C'}
-                >
-                  Reservar →
-                </Link>
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          <ServCard s={SERVICIOS[0]} featured />
+          {SERVICIOS.slice(1).map(s => <ServCard key={s.nombre} s={s} />)}
         </div>
       </div>
     </section>
@@ -217,36 +302,31 @@ function Servicios() {
 // ── Equipo ─────────────────────────────────────────────────────
 function Equipo() {
   return (
-    <section id="equipo" style={{ background: 'white', borderTop: '1px solid #EBE8E0' }}>
-      <div className="max-w-6xl mx-auto px-6 py-24">
-        <div className="mb-14">
+    <section id="equipo" style={{ background: '#0F0E0B' }}>
+      <div className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
+        <div className="reveal text-center mb-14">
           <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#C9A84C' }}>
-            Equipo
+            Nuestro equipo
           </p>
-          <h2
-            className="text-4xl font-bold text-warm-900"
-            style={{ letterSpacing: '-0.02em' }}
-          >
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-white" style={{ letterSpacing: '-0.03em' }}>
             Profesionales que te cuidan
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {EQUIPO.map(e => (
-            <div key={e.nombre} className="text-center">
-              {/* Avatar */}
+            <div key={e.nombre}
+              className="team-card rounded-3xl p-6 text-center transition-colors"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+              onMouseEnter={ev => ev.currentTarget.style.borderColor = 'rgba(201,168,76,0.4)'}
+              onMouseLeave={ev => ev.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}>
               <div className="relative inline-block mb-4">
-                <div
-                  className="w-24 h-24 rounded-2xl flex items-center justify-center text-white text-3xl font-bold mx-auto"
-                  style={{ background: `linear-gradient(135deg, ${e.color} 0%, ${e.color}99 100%)` }}
-                >
+                <div className="w-24 h-24 rounded-2xl flex items-center justify-center text-white text-3xl font-bold mx-auto"
+                  style={{ background: `linear-gradient(135deg, ${e.color} 0%, ${e.color}99 100%)` }}>
                   {e.inicial}
                 </div>
-                {/* Rating badge */}
-                <div
-                  className="absolute -bottom-2 -right-2 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold"
-                  style={{ background: '#0F0E0B', color: '#FACC15' }}
-                >
+                <div className="absolute -bottom-2 -right-2 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold"
+                  style={{ background: '#0F0E0B', color: '#FACC15', border: '1px solid rgba(250,204,21,0.25)' }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="#FACC15" stroke="none">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                   </svg>
@@ -254,23 +334,20 @@ function Equipo() {
                 </div>
               </div>
 
-              <p className="font-semibold text-warm-900 text-sm">{e.nombre}</p>
-              <p className="text-xs mt-0.5 mb-3" style={{ color: '#8C8274' }}>{e.rol}</p>
+              <p className="font-semibold text-white text-sm">{e.nombre}</p>
+              <p className="text-xs mt-0.5 mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>{e.rol}</p>
 
               <div className="flex flex-wrap justify-center gap-1">
                 {e.especialidades.map(esp => (
-                  <span
-                    key={esp}
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ background: '#FEF9C3', color: '#92400E' }}
-                  >
+                  <span key={esp} className="text-xs px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(201,168,76,0.12)', color: '#C9A84C' }}>
                     {esp}
                   </span>
                 ))}
               </div>
 
-              <p className="text-xs mt-3" style={{ color: '#B8B0A0' }}>
-                {e.resenas} reseñas
+              <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                {e.resenas} resenas
               </p>
             </div>
           ))}
@@ -280,21 +357,102 @@ function Equipo() {
   )
 }
 
+// ── Galeria ────────────────────────────────────────────────────
+function Galeria() {
+  return (
+    <section style={{ background: '#0F0E0B' }}>
+      <div className="max-w-6xl mx-auto px-6 pb-24 sm:pb-32">
+        <div className="reveal mb-12">
+          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#C9A84C' }}>
+            Galeria
+          </p>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-white" style={{ letterSpacing: '-0.03em' }}>
+            Nuestra casa,<br />tu estilo
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+          {GALERIA.map(g => (
+            <div key={g.src}
+              className={`gallery-item group relative rounded-3xl overflow-hidden ${g.span}`}
+              style={{ height: 'clamp(240px, 30vw, 360px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              {/* Capa con parallax interno (GSAP mueve este wrapper, CSS escala la img al hover) */}
+              <div className="gallery-par absolute" style={{ inset: '-10% 0' }}>
+                <img src={g.src} alt={g.alt} loading="lazy" decoding="async"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]" />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 pointer-events-none"
+                style={{ height: '55%', background: 'linear-gradient(180deg, transparent 0%, rgba(15,14,11,0.85) 100%)' }} />
+              <p className="absolute bottom-4 left-5 text-sm font-semibold text-white">
+                {g.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ── CTA cinematografica ────────────────────────────────────────
+function BigCTA() {
+  return (
+    <section className="cta-section relative overflow-hidden" style={{ background: '#141209' }}>
+      {/* Resplandor dorado animado con scroll */}
+      <div className="cta-glow absolute pointer-events-none rounded-full"
+        style={{
+          width: '70vw', height: '70vw', left: '50%', top: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'radial-gradient(circle, rgba(201,168,76,0.28) 0%, rgba(154,124,46,0.12) 40%, transparent 70%)',
+          opacity: 0.5,
+        }} />
+
+      <div className="relative max-w-6xl mx-auto px-6 py-28 sm:py-40 text-center">
+        <h2 className="font-extrabold leading-[1.02] mb-8" style={{ letterSpacing: '-0.03em', fontSize: 'clamp(2.5rem, 7vw, 5.5rem)' }}>
+          <span className="cta-line block overflow-hidden">
+            <span className="inline-block text-white">Tu proximo corte</span>
+          </span>
+          <span className="cta-line block overflow-hidden">
+            <span className="inline-block" style={{ background: 'linear-gradient(135deg, #C9A84C 0%, #FACC15 60%, #C9A84C 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+              comienza aqui.
+            </span>
+          </span>
+        </h2>
+        <p className="reveal max-w-md mx-auto text-base mb-10" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+          Unete a los mas de 12,000 clientes que confian su estilo a {SALON.nombre}.
+        </p>
+        <div className="reveal flex flex-wrap justify-center gap-3">
+          <Link to="/reservar"
+            className="inline-flex items-center gap-2 px-8 py-4 text-sm font-bold rounded-xl no-underline transition-transform hover:scale-[1.04] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #C9A84C 0%, #B8973D 100%)', color: '#1A1713', boxShadow: '0 10px 40px rgba(201,168,76,0.4)' }}>
+            Reservar cita
+            <ArrowIcon />
+          </Link>
+          <Link to="/tienda"
+            className="inline-flex items-center gap-2 px-8 py-4 text-sm font-semibold rounded-xl no-underline transition-colors"
+            style={{ color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.2)' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(201,168,76,0.6)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'}>
+            Visitar tienda
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ── Contacto ───────────────────────────────────────────────────
 function Contacto() {
   return (
-    <section id="contacto" style={{ background: '#0F0E0B' }}>
+    <section id="contacto" style={{ background: '#0F0E0B', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
       <div className="max-w-6xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-16 items-start">
         {/* Info */}
-        <div>
+        <div className="reveal">
           <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#C9A84C' }}>
             Contacto
           </p>
-          <h2
-            className="text-4xl font-bold text-white mb-8"
-            style={{ letterSpacing: '-0.02em' }}
-          >
-            Visítanos o<br />escríbenos
+          <h2 className="text-4xl font-extrabold text-white mb-8" style={{ letterSpacing: '-0.02em' }}>
+            Visitanos o<br />escribenos
           </h2>
 
           <div className="space-y-5">
@@ -316,10 +474,8 @@ function Contacto() {
               },
             ].map(({ icon, label, value }) => (
               <div key={label} className="flex items-start gap-4">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.2)' }}
-                >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.2)' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     {icon}
                   </svg>
@@ -336,20 +492,16 @@ function Contacto() {
         </div>
 
         {/* Horarios + CTA */}
-        <div>
-          <div
-            className="rounded-2xl p-7 mb-6"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
+        <div className="reveal">
+          <div className="rounded-2xl p-7 mb-6"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <p className="text-sm font-semibold text-white mb-5">Horario de atencion</p>
             <div className="space-y-3">
               {SALON.horarios.map(({ dias, horas }) => (
                 <div key={dias} className="flex items-center justify-between">
                   <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{dias}</span>
-                  <span
-                    className="text-sm font-medium"
-                    style={{ color: horas === 'Cerrado' ? 'rgba(255,255,255,0.25)' : '#C9A84C' }}
-                  >
+                  <span className="text-sm font-medium"
+                    style={{ color: horas === 'Cerrado' ? 'rgba(255,255,255,0.25)' : '#C9A84C' }}>
                     {horas}
                   </span>
                 </div>
@@ -357,23 +509,17 @@ function Contacto() {
             </div>
           </div>
 
-          <div
-            className="rounded-2xl p-7"
-            style={{ background: 'linear-gradient(135deg, rgba(201,168,76,0.15) 0%, rgba(201,168,76,0.05) 100%)', border: '1px solid rgba(201,168,76,0.2)' }}
-          >
+          <div className="rounded-2xl p-7"
+            style={{ background: 'linear-gradient(135deg, rgba(201,168,76,0.15) 0%, rgba(201,168,76,0.05) 100%)', border: '1px solid rgba(201,168,76,0.2)' }}>
             <p className="text-sm font-semibold text-white mb-2">Reserva tu cita ahora</p>
             <p className="text-sm mb-5" style={{ color: 'rgba(255,255,255,0.45)' }}>
               Elige servicio, estilista y horario en segundos desde nuestro sistema.
             </p>
-            <Link
-              to="/reservar"
+            <Link to="/reservar"
               className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl no-underline"
-              style={{ background: 'linear-gradient(135deg, #C9A84C 0%, #B8973D 100%)', color: '#1A1713' }}
-            >
+              style={{ background: 'linear-gradient(135deg, #C9A84C 0%, #B8973D 100%)', color: '#1A1713' }}>
               Reservar ahora
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-              </svg>
+              <ArrowIcon />
             </Link>
           </div>
         </div>
@@ -388,10 +534,8 @@ function Footer() {
     <footer style={{ background: '#0F0E0B', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
       <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #C9A84C 0%, #9A7C2E 100%)' }}
-          >
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #C9A84C 0%, #9A7C2E 100%)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
               <line x1="20" y1="4" x2="8.12" y2="15.88"/>
@@ -408,13 +552,11 @@ function Footer() {
 
         <div className="flex items-center gap-5">
           {['Privacidad', 'Terminos'].map(l => (
-            <a
-              key={l} href="#"
+            <a key={l} href="#"
               className="text-xs no-underline"
               style={{ color: 'rgba(255,255,255,0.25)' }}
               onMouseEnter={e => e.target.style.color = 'rgba(255,255,255,0.5)'}
-              onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.25)'}
-            >
+              onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.25)'}>
               {l}
             </a>
           ))}
@@ -426,12 +568,144 @@ function Footer() {
 
 // ── Page ───────────────────────────────────────────────────────
 export default function LandingPage() {
+  const rootRef = useRef(null)
+
+  useEffect(() => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduced) return // sin animaciones: el contenido es visible por defecto
+
+    // ── Lenis: scroll suave de alta gama ──
+    const lenis = new Lenis({ duration: 1.15, smoothWheel: true, anchors: true })
+    lenis.on('scroll', ScrollTrigger.update)
+    const tick = (time) => lenis.raf(time * 1000)
+    gsap.ticker.add(tick)
+    gsap.ticker.lagSmoothing(0)
+
+    // ── GSAP: escenas cinematograficas por seccion ──
+    const ctx = gsap.context(() => {
+      // Hero: entrada en cascada
+      gsap.timeline({ defaults: { ease: 'power4.out' } })
+        .from('.hero-chip', { y: 24, opacity: 0, duration: 0.8, delay: 0.15 })
+        .from('.hero-line > span', { yPercent: 115, duration: 1.1, stagger: 0.13 }, '-=0.5')
+        .from('.hero-sub', { y: 28, opacity: 0, duration: 0.9 }, '-=0.65')
+        .from('.hero-cta > *', { y: 22, opacity: 0, duration: 0.7, stagger: 0.08 }, '-=0.6')
+        .from('.hero-float', { y: 30, opacity: 0, duration: 0.8, stagger: 0.1 }, '-=0.5')
+        .from('.hero-img', { y: 70, opacity: 0, duration: 1.1, stagger: 0.16, ease: 'power3.out' }, '-=1.0')
+
+      // Fotos del hero: flotacion sutil continua (inicia tras la entrada)
+      gsap.to('.hero-img', {
+        y: '+=14', duration: 3.2, repeat: -1, yoyo: true,
+        ease: 'sine.inOut', stagger: 0.5, delay: 2.2,
+      })
+
+      // Hero: parallax de salida al hacer scroll
+      gsap.to('.hero-content', {
+        yPercent: -16, opacity: 0.1, ease: 'none',
+        scrollTrigger: { trigger: '.hero-section', start: 'top top', end: 'bottom top', scrub: true },
+      })
+
+      // Reveals genericos
+      gsap.utils.toArray('.reveal').forEach(el => {
+        gsap.from(el, {
+          y: 48, opacity: 0, duration: 1, ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 86%', once: true },
+        })
+      })
+
+      // Servicios: cards en stagger
+      ScrollTrigger.batch('.serv-card', {
+        start: 'top 88%', once: true,
+        onEnter: els => gsap.from(els, {
+          y: 56, opacity: 0, scale: 0.97, duration: 0.9, stagger: 0.09, ease: 'power3.out',
+        }),
+      })
+
+      // Equipo: cards con rotacion alterna
+      gsap.utils.toArray('.team-card').forEach((el, i) => {
+        gsap.from(el, {
+          y: 60, opacity: 0, rotate: i % 2 ? 2 : -2, duration: 1, ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+        })
+      })
+
+      // Galeria: reveal de cada pieza + parallax interno de la foto
+      ScrollTrigger.batch('.gallery-item', {
+        start: 'top 88%', once: true,
+        onEnter: els => gsap.from(els, {
+          y: 64, opacity: 0, duration: 1, stagger: 0.1, ease: 'power3.out',
+        }),
+      })
+      gsap.utils.toArray('.gallery-par').forEach(el => {
+        gsap.fromTo(el, { yPercent: -6 }, {
+          yPercent: 6, ease: 'none',
+          scrollTrigger: { trigger: el.parentElement, start: 'top bottom', end: 'bottom top', scrub: true },
+        })
+      })
+
+      // Contadores de stats
+      gsap.utils.toArray('.stat-num').forEach(el => {
+        const end      = parseFloat(el.dataset.value)
+        const decimals = Number(el.dataset.decimals || 0)
+        const suffix   = el.dataset.suffix || ''
+        const obj = { v: 0 }
+        gsap.to(obj, {
+          v: end, duration: 1.8, ease: 'power2.out',
+          scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+          onUpdate: () => {
+            el.textContent = obj.v.toLocaleString('es-MX', {
+              minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+            }) + suffix
+          },
+        })
+      })
+
+      // CTA: titulo con reveal + resplandor que crece con el scroll
+      gsap.from('.cta-line > span', {
+        yPercent: 110, duration: 1.1, stagger: 0.14, ease: 'power4.out',
+        scrollTrigger: { trigger: '.cta-section', start: 'top 72%', once: true },
+      })
+      gsap.fromTo('.cta-glow',
+        { scale: 0.6, opacity: 0.25 },
+        {
+          scale: 1.5, opacity: 0.9, ease: 'none',
+          scrollTrigger: { trigger: '.cta-section', start: 'top bottom', end: 'bottom top', scrub: true },
+        })
+    }, rootRef)
+
+    return () => {
+      ctx.revert()
+      gsap.ticker.remove(tick)
+      lenis.destroy()
+    }
+  }, [])
+
   return (
-    <div style={{ fontFamily: '"Hanken Grotesk", system-ui, sans-serif' }}>
+    <div ref={rootRef} style={{ fontFamily: '"Hanken Grotesk", system-ui, sans-serif', background: '#0F0E0B' }}>
+      {/* Animaciones CSS puras (marquee + indicador de scroll) */}
+      <style>{`
+        @keyframes marquee-slide {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-33.333%); }
+        }
+        .marquee-track { animation: marquee-slide 24s linear infinite; }
+        @keyframes scroll-hint {
+          0%   { transform: translateY(-100%); }
+          100% { transform: translateY(250%); }
+        }
+        .scroll-hint-dot { animation: scroll-hint 1.8s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .marquee-track, .scroll-hint-dot { animation: none; }
+        }
+      `}</style>
+
       <Navbar />
       <Hero />
+      <Marquee />
+      <StatsBar />
       <Servicios />
       <Equipo />
+      <Galeria />
+      <BigCTA />
       <Contacto />
       <Footer />
     </div>
