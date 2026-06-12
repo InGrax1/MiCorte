@@ -1,12 +1,10 @@
-import { useEffect, useRef, lazy, Suspense } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
 import Navbar from '@/components/layout/Navbar'
-
-// Three.js se carga en su propio chunk — solo cuando se visita la landing
-const PaintCanvas = lazy(() => import('@/components/three/PaintCanvas'))
+import ParallaxBarberia from '@/components/landing/ParallaxBarberia'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -50,6 +48,17 @@ const STATS = [
 
 const MARQUEE_ITEMS = ['Corte', 'Barba', 'Color', 'Mechas', 'Tratamientos', 'Peinado', 'Estilizado']
 
+// Collage del hero: fotos de cortes en abanico alrededor del logo.
+// Posiciones en % del contenedor cuadrado; cada pieza con su rotacion.
+const COLLAGE = [
+  { src: '/img/landing/barber-corte.jpg',       left: 27, top: -2, rot: -12 },
+  { src: '/img/landing/corte-maquina.jpg',      left: 54, top: 8,  rot: 14  },
+  { src: '/img/landing/navaja-barba.jpg',       left: 56, top: 40, rot: 26  },
+  { src: '/img/landing/barba-perfilado.jpg',    left: 29, top: 56, rot: -8  },
+  { src: '/img/landing/salon-espejos.jpg',      left: 3,  top: 44, rot: -20 },
+  { src: '/img/landing/barberia-interior.jpg',  left: 0,  top: 10, rot: -30 },
+]
+
 const GALERIA = [
   { src: '/img/landing/barberia-interior.jpg', alt: 'Interior de la barberia con sillones clasicos', label: 'Nuestro espacio',     span: 'sm:col-span-2' },
   { src: '/img/landing/corte-maquina.jpg',     alt: 'Barbero estilizando a un cliente',             label: 'Acabado profesional', span: '' },
@@ -82,42 +91,59 @@ function ArrowIcon({ size = 14 }) {
 function Hero() {
   return (
     <section className="hero-section relative overflow-hidden" style={{ background: '#0F0E0B', minHeight: '100svh' }}>
-      {/* Fondo Three.js — pintura dorada reactiva al cursor */}
-      <Suspense fallback={null}>
-        <PaintCanvas className="absolute inset-0" style={{ width: '100%', height: '100%' }} />
-      </Suspense>
+      {/* Escena parallax por capas: sala -> muebles -> sillones -> lamparas */}
+      <ParallaxBarberia className="absolute inset-0" />
 
       {/* Degradado para legibilidad y fusion con la siguiente seccion */}
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(180deg, rgba(15,14,11,0.55) 0%, rgba(15,14,11,0.15) 35%, rgba(15,14,11,0.25) 70%, #0F0E0B 100%)' }} />
+        style={{ background: 'linear-gradient(180deg, rgba(15,14,11,0.6) 0%, rgba(15,14,11,0.2) 35%, rgba(15,14,11,0.3) 70%, #0F0E0B 100%)' }} />
 
       <div className="hero-content relative max-w-6xl mx-auto px-6 flex flex-col justify-center"
         style={{ minHeight: '100svh', paddingTop: '96px', paddingBottom: '120px' }}>
 
-        {/* Fotos flotantes — solo desktop */}
-        <div className="hidden lg:block absolute top-1/2 -translate-y-1/2 pointer-events-none" style={{ right: '2%' }}>
-          <div className="hero-img rounded-2xl overflow-hidden mb-7"
-            style={{ width: '320px', height: '220px', transform: 'rotate(3deg)', border: '1px solid rgba(201,168,76,0.3)', boxShadow: '0 30px 70px rgba(0,0,0,0.55)' }}>
-            <img src="/img/landing/barberia-interior.jpg" alt="Interior de la barberia" className="w-full h-full object-cover" decoding="async" />
-          </div>
-          <div className="hero-img rounded-2xl overflow-hidden ml-20"
-            style={{ width: '270px', height: '185px', transform: 'rotate(-4deg)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 30px 70px rgba(0,0,0,0.55)' }}>
-            <img src="/img/landing/barba-perfilado.jpg" alt="Barbero perfilando una barba" className="w-full h-full object-cover" decoding="async" />
-          </div>
-        </div>
+        {/* Collage de cortes + logo — espacio derecho del hero (solo desktop) */}
+        <div className="hidden lg:block absolute pointer-events-none"
+          style={{ right: '-3%', top: '50%', transform: 'translateY(-50%)', width: 'min(28vw, 480px)', height: 'min(28vw, 480px)' }}>
+          {COLLAGE.map(c => (
+            <div key={c.src} className="collage-item absolute rounded-3xl overflow-hidden"
+              style={{
+                width: '44%', height: '44%',
+                left: `${c.left}%`, top: `${c.top}%`,
+                transform: `rotate(${c.rot}deg)`,
+                border: '1px solid rgba(201,168,76,0.25)',
+                boxShadow: '0 18px 40px rgba(0,0,0,0.5)',
+              }}>
+              <img src={c.src} alt="" loading="lazy" decoding="async"
+                className="w-full h-full object-cover"
+                style={{ filter: 'brightness(0.85) saturate(0.9)' }} />
+            </div>
+          ))}
 
-        {/* Chip */}
-        <div className="hero-chip inline-flex items-center gap-2 self-start px-4 py-1.5 rounded-full mb-7"
-          style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)', backdropFilter: 'blur(8px)' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
-            <line x1="20" y1="4" x2="8.12" y2="15.88"/>
-            <line x1="14.47" y1="14.48" x2="20" y2="20"/>
-            <line x1="8.12" y1="8.12" x2="12" y2="12"/>
-          </svg>
-          <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#C9A84C' }}>
-            Barberia premium · CDMX
-          </span>
+          {/* Logo circular al centro */}
+          <div className="collage-logo absolute rounded-full flex flex-col items-center justify-center text-center"
+            style={{
+              left: '50%', top: '50%', width: '42%', height: '42%',
+              transform: 'translate(-50%, -50%)',
+              background: 'linear-gradient(145deg, #1A1713 0%, #0F0E0B 100%)',
+              border: '2px solid rgba(201,168,76,0.55)',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.65), 0 0 0 8px rgba(15,14,11,0.55), 0 0 44px rgba(201,168,76,0.25)',
+            }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-2"
+              style={{ background: 'linear-gradient(135deg, #C9A84C 0%, #9A7C2E 100%)' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F0E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <p className="font-extrabold text-white" style={{ fontSize: 'clamp(1rem, 1.4vw, 1.5rem)', letterSpacing: '-0.02em' }}>
+              {SALON.nombre}
+            </p>
+            <p className="text-xs font-semibold tracking-[0.3em] uppercase mt-1" style={{ color: '#C9A84C' }}>
+              Barberia
+            </p>
+          </div>
         </div>
 
         {/* Titulo gigante con reveal por linea */}
@@ -137,16 +163,16 @@ function Hero() {
           {SALON.tagline} Corte, barba y color con los mejores estilistas de la ciudad.
         </p>
 
-        {/* CTAs */}
-        <div className="hero-cta flex flex-wrap items-center gap-3 mb-12">
+        {/* CTAs — misma altura fija para alineacion exacta */}
+        <div className="hero-cta flex flex-wrap items-stretch gap-3 mb-12">
           <Link to="/reservar"
-            className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-bold rounded-xl no-underline transition-transform hover:scale-[1.03] active:scale-[0.98]"
+            className="inline-flex h-[52px] items-center gap-2 px-7 text-sm font-bold rounded-xl no-underline transition-transform hover:scale-[1.03] active:scale-[0.98]"
             style={{ background: 'linear-gradient(135deg, #C9A84C 0%, #B8973D 100%)', color: '#1A1713', boxShadow: '0 8px 32px rgba(201,168,76,0.35)' }}>
             Reservar cita
             <ArrowIcon />
           </Link>
           <a href="#servicios"
-            className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-semibold rounded-xl no-underline transition-colors"
+            className="inline-flex h-[52px] items-center gap-2 px-7 text-sm font-semibold rounded-xl no-underline transition-colors"
             style={{ color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(201,168,76,0.6)'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'}>
@@ -155,7 +181,7 @@ function Hero() {
         </div>
 
         {/* Tarjetas flotantes — estilo referencia */}
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-stretch gap-3">
           <div className="hero-float flex items-center gap-3 px-4 py-3 rounded-2xl"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)' }}>
             <span className="text-2xl font-extrabold text-white">4.8</span>
@@ -164,10 +190,20 @@ function Hero() {
               <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>350+ resenas</p>
             </div>
           </div>
-          <div className="hero-float flex items-center gap-2.5 px-4 py-3 rounded-2xl"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)' }}>
-            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#4ADE80' }} />
-            <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>Reserva online en menos de 60 segundos</p>
+          <div className="hero-float flex items-center gap-3 px-4 py-3 rounded-2xl"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(201,168,76,0.28)', backdropFilter: 'blur(12px)' }}>
+            <div className="relative w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(201,168,76,0.16)' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>
+              </svg>
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full animate-pulse"
+                style={{ background: '#4ADE80', boxShadow: '0 0 8px rgba(74,222,128,0.7)', border: '2px solid #0F0E0B' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white" style={{ lineHeight: 1.15 }}>Reserva online</p>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Lista en menos de 60 segundos</p>
+            </div>
           </div>
         </div>
       </div>
@@ -585,17 +621,33 @@ export default function LandingPage() {
     const ctx = gsap.context(() => {
       // Hero: entrada en cascada
       gsap.timeline({ defaults: { ease: 'power4.out' } })
-        .from('.hero-chip', { y: 24, opacity: 0, duration: 0.8, delay: 0.15 })
-        .from('.hero-line > span', { yPercent: 115, duration: 1.1, stagger: 0.13 }, '-=0.5')
+        .from('.hero-line > span', { yPercent: 115, duration: 1.1, stagger: 0.13, delay: 0.15 })
         .from('.hero-sub', { y: 28, opacity: 0, duration: 0.9 }, '-=0.65')
-        .from('.hero-cta > *', { y: 22, opacity: 0, duration: 0.7, stagger: 0.08 }, '-=0.6')
+        .from('.hero-cta > *', { y: 22, opacity: 0, duration: 0.7, stagger: 0.08, clearProps: 'transform,opacity' }, '-=0.6')
         .from('.hero-float', { y: 30, opacity: 0, duration: 0.8, stagger: 0.1 }, '-=0.5')
-        .from('.hero-img', { y: 70, opacity: 0, duration: 1.1, stagger: 0.16, ease: 'power3.out' }, '-=1.0')
 
-      // Fotos del hero: flotacion sutil continua (inicia tras la entrada)
-      gsap.to('.hero-img', {
-        y: '+=14', duration: 3.2, repeat: -1, yoyo: true,
-        ease: 'sine.inOut', stagger: 0.5, delay: 2.2,
+      // ── Collage: cada pieza con animacion independiente ──
+      // Entrada: las fotos brotan en cascada con rebote; el logo al final con elastico
+      gsap.from('.collage-item', {
+        scale: 0, opacity: 0, duration: 0.9, ease: 'back.out(1.7)',
+        stagger: 0.13, delay: 0.7,
+      })
+      gsap.from('.collage-logo', {
+        scale: 0, opacity: 0, duration: 1.2, ease: 'elastic.out(1, 0.55)', delay: 1.6,
+      })
+      // Flotacion continua: cada foto con su propia amplitud, duracion y fase
+      gsap.utils.toArray('.collage-item').forEach((el, i) => {
+        gsap.to(el, {
+          y: `+=${9 + (i % 3) * 5}`,
+          rotate: `+=${i % 2 ? 2.5 : -2.5}`,
+          duration: 2.4 + i * 0.45,
+          repeat: -1, yoyo: true, ease: 'sine.inOut',
+          delay: 1.8 + i * 0.3,
+        })
+      })
+      // El logo levita lento, a su propio ritmo
+      gsap.to('.collage-logo', {
+        y: '+=10', duration: 3.4, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 2.6,
       })
 
       // Hero: parallax de salida al hacer scroll
@@ -612,11 +664,14 @@ export default function LandingPage() {
         })
       })
 
-      // Servicios: cards en stagger
+      // Servicios: cards en stagger.
+      // Estado inicial con gsap.set + animar con gsap.to — un gsap.from dentro
+      // de onEnter ocultaria la card cuando ya esta en pantalla (parpadeo).
+      gsap.set('.serv-card', { y: 56, opacity: 0, scale: 0.97 })
       ScrollTrigger.batch('.serv-card', {
         start: 'top 88%', once: true,
-        onEnter: els => gsap.from(els, {
-          y: 56, opacity: 0, scale: 0.97, duration: 0.9, stagger: 0.09, ease: 'power3.out',
+        onEnter: els => gsap.to(els, {
+          y: 0, opacity: 1, scale: 1, duration: 0.9, stagger: 0.09, ease: 'power3.out',
         }),
       })
 
@@ -628,11 +683,13 @@ export default function LandingPage() {
         })
       })
 
-      // Galeria: reveal de cada pieza + parallax interno de la foto
+      // Galeria: reveal de cada pieza + parallax interno de la foto.
+      // Mismo patron set + to que en serv-card para evitar el parpadeo.
+      gsap.set('.gallery-item', { y: 64, opacity: 0 })
       ScrollTrigger.batch('.gallery-item', {
         start: 'top 88%', once: true,
-        onEnter: els => gsap.from(els, {
-          y: 64, opacity: 0, duration: 1, stagger: 0.1, ease: 'power3.out',
+        onEnter: els => gsap.to(els, {
+          y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: 'power3.out',
         }),
       })
       gsap.utils.toArray('.gallery-par').forEach(el => {

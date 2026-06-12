@@ -2,14 +2,24 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
 /**
- * Fondo Three.js de "textura pintada" (trazos dorados sobre oscuro)
- * que reacciona al cursor con una ondulacion fluida.
+ * Fondo del hero: fotografia real del interior de la barberia con
+ * PARALLAX DE PROFUNDIDAD ligado al scroll + reaccion sutil al cursor.
+ *
+ * Profundidad procedural: la parte baja de la escena (sillones, muebles)
+ * se considera "cerca" y la parte alta (pared, espejos, lamparas) "lejos".
+ * Al hacer scroll, lo cercano se desplaza mas rapido que lo lejano,
+ * separando visualmente los muebles del fondo (pseudo-3D con una sola foto).
+ *
+ * Cursor: inclinacion de profundidad (depth tilt) + ondulacion muy sutil,
+ * con un toque minimo de aberracion cromatica.
  *
  * Rendimiento:
  * - DPR limitado a 1.75
- * - El render se pausa cuando el canvas sale del viewport (IntersectionObserver)
+ * - Render pausado cuando el canvas sale del viewport (IntersectionObserver)
  * - Con prefers-reduced-motion se renderiza un solo frame estatico
  */
+const IMG_SRC = '/img/landing/barberia-interior.jpg'
+
 const VERT = /* glsl */ `
   varying vec2 vUv;
   void main() {
@@ -21,12 +31,15 @@ const VERT = /* glsl */ `
 const FRAG = /* glsl */ `
   precision highp float;
   varying vec2 vUv;
+  uniform sampler2D uTex;
+  uniform float uLoaded;     // 0 -> 1 cuando la textura esta lista
   uniform float uTime;
-  uniform vec2  uMouse;     // 0..1, suavizado en JS
-  uniform float uMouseVel;  // intensidad del movimiento del cursor
+  uniform vec2  uMouse;      // 0..1, suavizado en JS
+  uniform float uMouseVel;   // intensidad del movimiento del cursor
+  uniform float uScroll;     // 0..1 progreso de scroll dentro del hero
   uniform vec2  uRes;
+  uniform float uImgAspect;
 
-  // ── Noise (hash + value noise + fbm) ──
   float hash(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
     p += dot(p, p + 45.32);
@@ -42,59 +55,81 @@ const FRAG = /* glsl */ `
     float d = hash(i + vec2(1.0, 1.0));
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
   }
-  float fbm(vec2 p) {
-    float v = 0.0;
-    float amp = 0.55;
-    mat2 rot = mat2(0.8, 0.6, -0.6, 0.8);
-    for (int i = 0; i < 5; i++) {
-      v += amp * noise(p);
-      p = rot * p * 2.05;
-      amp *= 0.5;
+
+  // Mapeo tipo object-fit: cover, con un zoom base para dejar margen al parallax
+  vec2 coverUv(vec2 uv) {
+    uv = (uv - 0.5) / 1.12 + 0.5;   // zoom 12% de margen
+    float sA = uRes.x / uRes.y;
+    if (sA > uImgAspect) {
+      uv.y = (uv.y - 0.5) * (uImgAspect / sA) + 0.5;
+    } else {
+      uv.x = (uv.x - 0.5) * (sA / uImgAspect) + 0.5;
     }
-    return v;
+    return uv;
   }
 
   void main() {
     float aspect = uRes.x / uRes.y;
-    vec2 uv = vUv;
-    uv.x *= aspect;
+    vec2 p = vec2(vUv.x * aspect, vUv.y);
     vec2 m = vec2(uMouse.x * aspect, uMouse.y);
 
-    // Onda alrededor del cursor — desplaza el campo de "pintura"
-    float dMouse  = length(uv - m);
-    float ripple  = exp(-dMouse * 3.2) * (0.35 + uMouseVel * 1.4);
-    vec2  push    = normalize(uv - m + 0.0001) * ripple * 0.35;
+    float d   = length(p - m);
+    vec2  dir = normalize(p - m + 0.0001);
 
-    float t = uTime * 0.06;
-    vec2 p = uv * 2.2 + push;
+    // ── Mapa de profundidad procedural ──
+    // 0 = lejos (pared/espejos arriba) .. 1 = cerca (sillones abajo)
+    float depth = smoothstep(0.95, 0.08, vUv.y);
+    // Los muebles ocupan el centro-bajo: refuerza la cercania ahi
+    depth *= 0.7 + 0.3 * smoothstep(0.95, 0.4, abs(vUv.x - 0.5) * 2.0);
 
-    // Dominio deformado: trazos organicos tipo pincelada
-    float n1 = fbm(p + vec2(t, -t * 0.7));
-    float n2 = fbm(p * 1.6 + vec2(n1 * 1.8, t * 0.5));
-    float field = n1 * 0.62 + n2 * 0.38;
+    // ── Parallax por scroll: lo cercano sube mas rapido ──
+    float rise = uScroll * mix(0.015, 0.095, depth);
+    // Empuje cinematografico: leve zoom al avanzar
+    float zoom = 1.0 + uScroll * 0.05;
 
-    // Vetas doradas: bandas finas del campo
-    float bands = abs(fract(field * 3.0 - t * 0.4) - 0.5) * 2.0;
-    float vein  = 1.0 - smoothstep(0.0, 0.16, bands);
-    // Brillo extra de las vetas cerca del cursor
-    vein *= 0.18 + 0.82 * exp(-dMouse * 1.9);
+    // ── Cursor: inclinacion de profundidad (sutil y elegante) ──
+    vec2 tilt = (uMouse - 0.5) * mix(0.003, 0.014, depth) * -1.0;
 
-    // Paleta de marca
-    vec3 dark  = vec3(0.058, 0.054, 0.043);   // #0F0E0B
-    vec3 deep  = vec3(0.118, 0.094, 0.047);   // marron profundo
-    vec3 gold  = vec3(0.788, 0.659, 0.298);   // #C9A84C
-    vec3 amber = vec3(0.604, 0.486, 0.180);   // #9A7C2E
+    // ── Ondulacion liquida minimalista ──
+    float ring = sin(d * 18.0 - uTime * 2.0) * exp(-d * 5.5) * (0.10 + uMouseVel) * 0.006;
+    float push = exp(-d * 3.5) * uMouseVel * 0.012;
+    vec2 idle = (vec2(
+      noise(p * 1.6 + uTime * 0.05),
+      noise(p * 1.6 - uTime * 0.04 + 7.3)
+    ) - 0.5) * 0.0025;
 
-    vec3 col = mix(dark, deep, smoothstep(0.25, 0.85, field));
-    col = mix(col, amber, vein * 0.55);
-    col += gold * vein * vein * 0.85;
+    vec2 texUv = coverUv(vUv);
+    texUv = (texUv - 0.5) / zoom + 0.5;
+    texUv.y -= rise;
+    texUv += tilt + dir * (ring + push) + idle;
 
-    // Halo suave dorado siguiendo el cursor
-    col += gold * exp(-dMouse * 4.5) * 0.10;
+    // Aberracion cromatica apenas perceptible cerca del puntero
+    float ca = exp(-d * 4.0) * (0.0015 + uMouseVel * 0.004);
+    vec3 col;
+    col.r = texture2D(uTex, texUv + dir * ca).r;
+    col.g = texture2D(uTex, texUv).g;
+    col.b = texture2D(uTex, texUv - dir * ca).b;
 
-    // Vineta para integrar con la seccion
-    float vig = smoothstep(1.25, 0.35, length(vUv - 0.5) * 1.6);
-    col *= mix(0.55, 1.0, vig);
+    // ── Gradacion de marca ──
+    float lum = dot(col, vec3(0.299, 0.587, 0.114));
+    col = mix(col, vec3(lum), 0.30);                       // desaturar
+    col *= 0.62;                                           // oscurecer base
+    vec3 gold = vec3(0.788, 0.659, 0.298);                 // #C9A84C
+    col += gold * pow(lum, 2.2) * 0.40;                    // dorar las luces
+    col += gold * exp(-d * 5.0) * 0.035;                   // halo leve en cursor
+
+    // Niebla dorada de profundidad: separa los muebles del fondo
+    col = mix(col, col * 0.82 + gold * 0.045, (1.0 - depth) * 0.5);
+
+    // Vineta
+    float vig = smoothstep(1.3, 0.4, length(vUv - 0.5) * 1.65);
+    col *= mix(0.5, 1.0, vig);
+
+    // Grano de pelicula muy sutil
+    col += (hash(vUv * uRes + fract(uTime) * 100.0) - 0.5) * 0.02;
+
+    // Fundido desde negro mientras carga la textura
+    col *= uLoaded;
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -118,18 +153,46 @@ export default function PaintCanvas({ className, style }) {
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
 
     const uniforms = {
-      uTime:     { value: 0 },
-      uMouse:    { value: new THREE.Vector2(0.5, 0.5) },
-      uMouseVel: { value: 0 },
-      uRes:      { value: new THREE.Vector2(mount.clientWidth, mount.clientHeight) },
+      uTex:       { value: new THREE.Texture() },
+      uLoaded:    { value: 0 },
+      uTime:      { value: 0 },
+      uMouse:     { value: new THREE.Vector2(0.5, 0.5) },
+      uMouseVel:  { value: 0 },
+      uScroll:    { value: 0 },
+      uRes:       { value: new THREE.Vector2(mount.clientWidth, mount.clientHeight) },
+      uImgAspect: { value: 1.5 },
     }
 
     const mat  = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms })
     const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat)
     scene.add(quad)
 
-    // Mouse con interpolacion suave (lerp) + velocidad para la onda
-    const target = { x: 0.5, y: 0.5 }
+    // Cargar la foto de la barberia y fundir su entrada
+    let texture = null
+    new THREE.TextureLoader().load(IMG_SRC, tex => {
+      texture = tex
+      tex.minFilter = THREE.LinearFilter
+      tex.generateMipmaps = false
+      uniforms.uTex.value = tex
+      uniforms.uImgAspect.value = tex.image.width / tex.image.height
+      fadeIn()
+      if (reduced) render()
+    })
+
+    let fadeRaf = 0
+    function fadeIn() {
+      const start = performance.now()
+      const tick = now => {
+        const t = Math.min(1, (now - start) / 900)
+        uniforms.uLoaded.value = t * t * (3 - 2 * t)
+        if (reduced) render()
+        if (t < 1) fadeRaf = requestAnimationFrame(tick)
+      }
+      fadeRaf = requestAnimationFrame(tick)
+    }
+
+    // Mouse con interpolacion suave + velocidad
+    const target  = { x: 0.5, y: 0.5 }
     const current = { x: 0.5, y: 0.5 }
     let vel = 0
 
@@ -137,24 +200,30 @@ export default function PaintCanvas({ className, style }) {
       const rect = mount.getBoundingClientRect()
       const nx = (e.clientX - rect.left) / rect.width
       const ny = 1.0 - (e.clientY - rect.top) / rect.height
-      vel = Math.min(1.5, vel + Math.hypot(nx - target.x, ny - target.y) * 4)
+      vel = Math.min(1.0, vel + Math.hypot(nx - target.x, ny - target.y) * 3)
       target.x = nx
       target.y = ny
     }
     window.addEventListener('pointermove', onPointerMove, { passive: true })
 
     let raf = 0
-    let visible = true
     const clock = new THREE.Clock()
 
     function render() {
       const dt = clock.getDelta()
       uniforms.uTime.value = clock.elapsedTime
-      current.x += (target.x - current.x) * Math.min(1, dt * 4.5)
-      current.y += (target.y - current.y) * Math.min(1, dt * 4.5)
-      vel *= Math.max(0, 1 - dt * 2.2)
+
+      // Mouse suavizado
+      current.x += (target.x - current.x) * Math.min(1, dt * 3.5)
+      current.y += (target.y - current.y) * Math.min(1, dt * 3.5)
+      vel *= Math.max(0, 1 - dt * 2.4)
       uniforms.uMouse.value.set(current.x, current.y)
       uniforms.uMouseVel.value = vel
+
+      // Progreso de scroll dentro del hero (suavizado para el parallax)
+      const sc = Math.min(1, Math.max(0, window.scrollY / Math.max(1, mount.clientHeight)))
+      uniforms.uScroll.value += (sc - uniforms.uScroll.value) * Math.min(1, dt * 6)
+
       renderer.render(scene, camera)
     }
     function loop() {
@@ -164,9 +233,8 @@ export default function PaintCanvas({ className, style }) {
 
     // Pausar cuando el hero no esta en pantalla
     const io = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting
       cancelAnimationFrame(raf)
-      if (visible && !reduced) loop()
+      if (entry.isIntersecting && !reduced) loop()
     }, { threshold: 0 })
     io.observe(mount)
 
@@ -179,19 +247,17 @@ export default function PaintCanvas({ className, style }) {
     }
     window.addEventListener('resize', onResize)
 
-    if (reduced) {
-      render() // un solo frame estatico
-    } else {
-      loop()
-    }
+    if (!reduced) loop()
 
     return () => {
       cancelAnimationFrame(raf)
+      cancelAnimationFrame(fadeRaf)
       io.disconnect()
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('resize', onResize)
       quad.geometry.dispose()
       mat.dispose()
+      if (texture) texture.dispose()
       renderer.dispose()
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement)
     }
