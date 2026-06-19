@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Areas privadas / autenticadas
+Disallow: /dashboard
+Disallow: /citas
+Disallow: /clientes
+Disallow: /estilistas
+Disallow: /servicios
+Disallow: /reportes
+Disallow: /ajustes
+Disallow: /quiosco
+Disallow: /portal

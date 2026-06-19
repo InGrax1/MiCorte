@@ -51,19 +51,19 @@ const MARQUEE_ITEMS = ['Corte', 'Barba', 'Color', 'Mechas', 'Tratamientos', 'Pei
 // Collage del hero: fotos de cortes en abanico alrededor del logo.
 // Posiciones en % del contenedor cuadrado; cada pieza con su rotacion.
 const COLLAGE = [
-  { src: '/img/landing/barber-corte.jpg',       left: 27, top: -2, rot: -12 },
-  { src: '/img/landing/corte-maquina.jpg',      left: 54, top: 8,  rot: 14  },
-  { src: '/img/landing/navaja-barba.jpg',       left: 56, top: 40, rot: 26  },
-  { src: '/img/landing/barba-perfilado.jpg',    left: 29, top: 56, rot: -8  },
-  { src: '/img/landing/salon-espejos.jpg',      left: 3,  top: 44, rot: -20 },
-  { src: '/img/landing/barberia-interior.jpg',  left: 0,  top: 10, rot: -30 },
+  { src: '/img/landing/barber-corte.webp',       left: 27, top: -2, rot: -12 },
+  { src: '/img/landing/corte-maquina.webp',      left: 54, top: 8,  rot: 14  },
+  { src: '/img/landing/navaja-barba.webp',       left: 56, top: 40, rot: 26  },
+  { src: '/img/landing/barba-perfilado.webp',    left: 29, top: 56, rot: -8  },
+  { src: '/img/landing/salon-espejos.webp',      left: 3,  top: 44, rot: -20 },
+  { src: '/img/landing/barberia-interior.webp',  left: 0,  top: 10, rot: -30 },
 ]
 
 const GALERIA = [
-  { src: '/img/landing/barberia-interior.jpg', alt: 'Interior de la barberia con sillones clasicos', label: 'Nuestro espacio',     span: 'sm:col-span-2' },
-  { src: '/img/landing/corte-maquina.jpg',     alt: 'Barbero estilizando a un cliente',             label: 'Acabado profesional', span: '' },
-  { src: '/img/landing/navaja-barba.jpg',      alt: 'Perfilado de barba con navaja',                label: 'Detalle a navaja',    span: '' },
-  { src: '/img/landing/salon-espejos.jpg',     alt: 'Area de estilismo y color',                    label: 'Area de color',       span: 'sm:col-span-2' },
+  { src: '/img/landing/barberia-interior.webp', alt: 'Interior de la barberia con sillones clasicos', label: 'Nuestro espacio',     span: 'sm:col-span-2' },
+  { src: '/img/landing/corte-maquina.webp',     alt: 'Barbero estilizando a un cliente',             label: 'Acabado profesional', span: '' },
+  { src: '/img/landing/navaja-barba.webp',      alt: 'Perfilado de barba con navaja',                label: 'Detalle a navaja',    span: '' },
+  { src: '/img/landing/salon-espejos.webp',     alt: 'Area de estilismo y color',                    label: 'Area de color',       span: 'sm:col-span-2' },
 ]
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -268,7 +268,7 @@ function ServCard({ s, featured = false }) {
       }}>
       {featured && (
         <>
-          <img src="/img/landing/barber-corte.jpg" alt="" loading="lazy" decoding="async"
+          <img src="/img/landing/barber-corte.webp" alt="" loading="lazy" decoding="async"
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
           <div className="absolute inset-0"
             style={{ background: 'linear-gradient(160deg, rgba(15,14,11,0.93) 0%, rgba(15,14,11,0.55) 55%, rgba(15,14,11,0.88) 100%)' }} />
@@ -582,7 +582,7 @@ function Footer() {
           <span className="text-white font-semibold text-sm">{SALON.nombre}</span>
         </div>
 
-        <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.2)' }}>
+        <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.6)' }}>
           © {new Date().getFullYear()} {SALON.nombre}. Todos los derechos reservados.
         </p>
 
@@ -590,9 +590,9 @@ function Footer() {
           {['Privacidad', 'Terminos'].map(l => (
             <a key={l} href="#"
               className="text-xs no-underline"
-              style={{ color: 'rgba(255,255,255,0.25)' }}
-              onMouseEnter={e => e.target.style.color = 'rgba(255,255,255,0.5)'}
-              onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.25)'}>
+              style={{ color: 'rgba(255,255,255,0.62)' }}
+              onMouseEnter={e => e.target.style.color = 'rgba(255,255,255,0.9)'}
+              onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.62)'}>
               {l}
             </a>
           ))}

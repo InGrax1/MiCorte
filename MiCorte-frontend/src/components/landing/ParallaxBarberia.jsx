@@ -32,14 +32,14 @@ gsap.registerPlugin(ScrollTrigger)
 //   responde ademas con su propio retardo.
 const LAYERS = [
   // El fondo acompana levemente al cursor — ancla la escena
-  { src: '/img/landing/parallax/fondo.jpg',          scroll: 8,   mouseX: 8,   mouseY: 6,   lagScroll: 0.35, lagMouse: 1.6, filter: 'brightness(0.55) saturate(0.85)' },
+  { src: '/img/landing/parallax/fondo.webp',          scroll: 8,   mouseX: 8,   mouseY: 6,   lagScroll: 0.35, lagMouse: 1.6, filter: 'brightness(0.55) saturate(0.85)' },
   // Los cuadros se oponen sobre todo en HORIZONTAL (mouse izquierda -> cuadros derecha)
-  { src: '/img/landing/parallax/cuadros-alpha.png',  scroll: -5,  mouseX: -16, mouseY: -5,  lagScroll: 0.7,  lagMouse: 2.6, filter: 'brightness(0.62)' },
+  { src: '/img/landing/parallax/cuadros-alpha.webp',  scroll: -5,  mouseX: -16, mouseY: -5,  lagScroll: 0.7,  lagMouse: 2.6, filter: 'brightness(0.62)' },
   // Las lamparas se oponen sobre todo en VERTICAL (mouse abajo -> lamparas arriba)
   // Ocultas en moviles: el recorte vertical las agranda sobre el titular
-  { src: '/img/landing/parallax/lamparas-alpha.png', scroll: -24, mouseX: -7,  mouseY: -26, lagScroll: 1.15, lagMouse: 3.6, filter: 'brightness(0.95) drop-shadow(0 14px 38px rgba(201,168,76,0.18))', soloDesktop: true },
+  { src: '/img/landing/parallax/lamparas-alpha.webp', scroll: -24, mouseX: -7,  mouseY: -26, lagScroll: 1.15, lagMouse: 3.6, filter: 'brightness(0.95) drop-shadow(0 14px 38px rgba(201,168,76,0.18))', soloDesktop: true },
   // Las sillas se oponen fuerte en HORIZONTAL (mouse derecha -> sillas izquierda)
-  { src: '/img/landing/parallax/sillas-alpha.png',   scroll: -16, mouseX: -28, mouseY: -9,  lagScroll: 0.9,  lagMouse: 4.8, filter: 'brightness(0.78) drop-shadow(0 18px 26px rgba(0,0,0,0.5))' },
+  { src: '/img/landing/parallax/sillas-alpha.webp',   scroll: -16, mouseX: -28, mouseY: -9,  lagScroll: 0.9,  lagMouse: 4.8, filter: 'brightness(0.78) drop-shadow(0 18px 26px rgba(0,0,0,0.5))' },
 ]
 export default function ParallaxBarberia({ className, style }) {
   const rootRef = useRef(null)
@@ -119,12 +119,15 @@ export default function ParallaxBarberia({ className, style }) {
     <div ref={rootRef} className={className} style={{ ...style, overflow: 'hidden' }} aria-hidden="true">
       {/* Capas registradas: misma geometria full-bleed, el margen extra
           (inset negativo) da espacio al movimiento sin revelar bordes */}
-      {LAYERS.map(l => (
+      {LAYERS.map((l, i) => (
         <div key={l.src} data-scroll={l.scroll} data-lagscroll={l.lagScroll}
           className={l.soloDesktop ? 'hidden md:block absolute' : 'absolute'}
           style={{ inset: '-9% -4%' }}>
           <div data-mousex={l.mouseX} data-mousey={l.mouseY} data-lagmouse={l.lagMouse} style={{ width: '100%', height: '100%' }}>
+            {/* La primera capa (fondo) es la candidata a LCP: priorizar su carga */}
             <img src={l.src} alt=""
+              fetchPriority={i === 0 ? 'high' : undefined}
+              decoding="async"
               className="w-full h-full object-cover"
               style={{ filter: l.filter }} />
           </div>
